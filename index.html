@@ -1098,7 +1098,7 @@ async function loadPageTrabajadores() {
   try {
     // 1) Traer todos los trabajador_obras con join
     const { data: rows, error } = await sb.from('trabajador_obras')
-      .select('obra_id, obras(nombre), trabajadores(trabajador_id, nombre, rut, activo, cargo)');
+      .select('obra_id, obras(nombre), trabajadores(trabajador_id, nombre, rut)');
 
     if (error) throw error;
 
