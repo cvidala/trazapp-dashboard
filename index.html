@@ -1694,7 +1694,7 @@ async function saveTrabajador() {
     const { error } = await sb.from('trabajadores').update({ nombre, rut, cargo }).eq('trabajador_id', editId);
     if (error) { errEl.textContent = error.message; errEl.style.display='block'; return; }
   } else {
-    const { data: trab, error } = await sb.from('trabajadores').insert({ nombre, rut, cargo, activo: true }).select().single();
+    const { data: trab, error } = await sb.from('trabajadores').insert({ nombre, rut, cargo }).select().single();
     if (error) { errEl.textContent = error.message; errEl.style.display='block'; return; }
     if (obraId) await sb.from('trabajador_obras').insert({ trabajador_id: trab.trabajador_id, obra_id: obraId });
   }
@@ -1704,13 +1704,16 @@ async function saveTrabajador() {
 
 async function darDeBajaTrabajador(id, nombre) {
   if (!confirm(`¿Dar de baja a ${nombre}? Quedará inactivo pero se conservará su historial.`)) return;
-  await sb.from('trabajadores').update({ activo: false }).eq('trabajador_id', id);
+  // activo column doesn't exist in trabajadores - skipping update
+  console.warn('Campo activo no existe en trabajadores');
+  alert('Nota: La columna activo no existe en la tabla trabajadores. Agrega la columna en Supabase para habilitar esta función.');
   await loadPageTrabajadores();
 }
 
 async function reactivarTrabajador(id, nombre) {
   if (!confirm(`¿Reactivar a ${nombre}?`)) return;
-  await sb.from('trabajadores').update({ activo: true }).eq('trabajador_id', id);
+  console.warn('Campo activo no existe en trabajadores');
+  alert('Nota: La columna activo no existe en la tabla trabajadores.');
   await loadPageTrabajadores();
 }
 
@@ -1841,7 +1844,7 @@ async function openGestionarCentro(obraId, obraNombre) {
   const [{ data: supervisores }, { data: supObra }, { data: trabajadores }, { data: trabObra }] = await Promise.all([
     sb.from('perfiles').select('user_id, nombre').eq('rol', 'SUPERVISOR'),
     sb.from('obra_usuarios').select('user_id, perfiles(nombre)').eq('obra_id', obraId).eq('rol_obra','SUPERVISOR'),
-    sb.from('trabajadores').select('trabajador_id, nombre').eq('activo', true),
+    sb.from('trabajadores').select('trabajador_id, nombre'),
     sb.from('trabajador_obras').select('trabajador_id, trabajadores(nombre)').eq('obra_id', obraId)
   ]);
 
@@ -1895,7 +1898,7 @@ async function asignarTrabajadorACentro() {
   await sb.from('trabajador_obras').upsert({ trabajador_id: trabId, obra_id: obraId });
   const [{ data: trabObra }, { data: todos }] = await Promise.all([
     sb.from('trabajador_obras').select('trabajador_id, trabajadores(nombre)').eq('obra_id', obraId),
-    sb.from('trabajadores').select('trabajador_id, nombre').eq('activo', true)
+    sb.from('trabajadores').select('trabajador_id, nombre')
   ]);
   const set = new Set((trabObra||[]).map(t => t.trabajador_id));
   document.getElementById('centroTrabSelect').innerHTML = (todos||[]).filter(t => !set.has(t.trabajador_id)).map(t => `<option value="${t.trabajador_id}">${t.nombre}</option>`).join('') || '<option disabled>Sin trabajadores disponibles</option>';
