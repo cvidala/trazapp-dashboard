@@ -326,6 +326,11 @@
       </div>
       <div class="nav-item" data-page="centros" onclick="navTo('centros')"><span class="nav-icon">🏗️</span> Centros de Costo</div>
     </div>
+    <!-- ADMIN ONLY SECTION -->
+    <div class="sidebar-section" id="adminSection" style="display:none">
+      <div class="sidebar-label">Administración</div>
+      <div class="nav-item" data-page="usuarios" onclick="navTo('usuarios')"><span class="nav-icon">👤</span> Usuarios</div>
+    </div>
     <div class="sidebar-bottom">
       <div class="user-chip">
         <div class="user-avatar" id="userAvatar">?</div>
@@ -547,11 +552,35 @@
 
       <!-- PAGE: CENTROS -->
       <div class="page" id="page-centros">
-        <div class="page-header">
-          <div class="page-title">🏗️ Centros de Costo</div>
-          <div class="page-sub">Resumen operativo y asignación de personas</div>
+        <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
+          <div>
+            <div class="page-title">🏗️ Centros de Costo</div>
+            <div class="page-sub">Resumen operativo y asignación de personas</div>
+          </div>
+          <button class="btn btn-primary" id="btnNuevoCentro" style="display:none" onclick="openNuevoCentro()">+ Nuevo Centro</button>
         </div>
         <div id="centrosList"></div>
+      </div>
+
+      <!-- PAGE: USUARIOS (ADMIN ONLY) -->
+      <div class="page" id="page-usuarios">
+        <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
+          <div>
+            <div class="page-title">👤 Usuarios</div>
+            <div class="page-sub">Gestión de accesos al sistema</div>
+          </div>
+          <button class="btn btn-primary" onclick="openNuevoUsuario()">+ Nuevo Usuario</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table class="full-table">
+              <thead><tr>
+                <th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Creado</th><th>Acciones</th>
+              </tr></thead>
+              <tbody id="usuariosTable"><tr><td colspan="6" class="empty-state">Cargando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
     </div><!-- /content -->
@@ -646,7 +675,12 @@ async function initApp() {
   const nombre = currentPerfil.nombre || '';
   document.getElementById('userAvatar').textContent = nombre.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
   document.getElementById('userName').textContent = nombre;
-  document.getElementById('userRole').textContent = currentPerfil.rol === 'ADMIN' ? 'Administrador' : 'Supervisor';
+  document.getElementById('userRole').textContent = currentPerfil.rol === 'ADMIN' ? 'Administrador' : currentPerfil.rol === 'READONLY' ? 'Visor' : 'Supervisor';
+
+  // Show/hide admin-only elements
+  const isAdmin = currentPerfil.rol === 'ADMIN';
+  document.getElementById('adminSection').style.display = isAdmin ? '' : 'none';
+  document.getElementById('btnNuevoCentro').style.display = isAdmin ? '' : 'none';
 
   // Cargar obras accesibles
   const { data: obras } = await sb.from('obras').select('obra_id, nombre').order('nombre');
@@ -1055,6 +1089,7 @@ const PAGE_TITLES = {
   entregas: '📋 Historial de Entregas',
   alertas: '⚠️ Alertas EPP',
   centros: '🏗️ Centros de Costo',
+  usuarios: '👤 Usuarios',
 };
 
 function navTo(page) {
@@ -1087,6 +1122,7 @@ function navTo(page) {
   if (page === 'entregas'     && allEntregas.length > 0)     renderEntregasPage(allEntregas);
   if (page === 'alertas'      && allAlertas.length > 0)      renderAlertasPage(allAlertas);
   if (page === 'centros'      && allCentros.length > 0)      renderCentrosPage(allCentros);
+  if (page === 'usuarios')    loadPageUsuarios();
 }
 
 function refreshPage() { loadDashboard(); }
@@ -1275,7 +1311,7 @@ async function loadPageStock() {
     const eppMap = {};
     for (const m of (movs||[])) {
       const eid = m.epp_id;
-      if (!eppMap[eid]) eppMap[eid] = { catalogo: m.catalogo_epp, bodegas: {} };
+      if (!eppMap[eid]) eppMap[eid] = { eppId: eid, catalogo: m.catalogo_epp, bodegas: {} };
       const bid = m.bodega_id;
       if (!eppMap[eid].bodegas[bid]) eppMap[eid].bodegas[bid] = { nombre: m.bodegas?.nombre, obraNombre: m.bodegas?.obras?.nombre, qty: 0 };
       eppMap[eid].bodegas[bid].qty += m.tipo === 'ENTRADA' ? m.cantidad : -m.cantidad;
@@ -1304,13 +1340,14 @@ function renderStockPage(data) {
     const icon = eppIcons[(cat.codigo||'').toUpperCase()] || '📦';
     const totalQty = Object.values(e.bodegas).reduce((s,b) => s+b.qty, 0);
     const totalClass = totalQty <= 0 ? 'low' : totalQty <= 3 ? 'warn' : 'ok';
-    return `<div class="stock-card">
+    return `<div class="stock-card" style="position:relative">
       <div class="stock-card-header">
         <div class="stock-card-icon">${icon}</div>
-        <div>
+        <div style="flex:1">
           <div class="stock-card-name">${cat.nombre || '—'}</div>
           <div class="stock-card-code">${cat.codigo || '—'} · Total: <span class="stock-bodega-qty ${totalClass}">${totalQty}</span></div>
         </div>
+        <button class="btn btn-danger btn-sm" title="Eliminar EPP del catálogo" onclick="eliminarEpp('${e.eppId}','${(cat.nombre||'').replace(/'/g,"\'")}')">🗑️</button>
       </div>
       <div class="stock-bodegas">
         ${Object.values(e.bodegas).map(b => {
@@ -1595,7 +1632,13 @@ function renderCentrosPage(data) {
         <div><div class="centro-stat-num">${o.trabajadoresCount||0}</div><div class="centro-stat-label">Trabajadores</div></div>
         <div><div class="centro-stat-num">${o.entregasCount||0}</div><div class="centro-stat-label">Entregas</div></div>
       </div>
-      <button class="btn btn-secondary btn-sm" style="position:absolute;top:16px;right:16px" onclick="openGestionarCentro('${o.obra_id}','${o.nombre.replace(/'/g,"\'")}')">⚙️ Gestionar</button>
+      <div style="position:absolute;top:16px;right:16px;display:flex;gap:6px;">
+        ${currentPerfil?.rol === 'ADMIN' ? `
+          <button class="btn btn-secondary btn-sm" onclick="openEditarCentro('${o.obra_id}','${o.nombre.replace(/'/g,"\'")}','${(o.direccion||'').replace(/'/g,"\'")}','${o.estado||'ACTIVA'}')">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="eliminarCentro('${o.obra_id}','${o.nombre.replace(/'/g,"\'")}')">🗑️</button>
+        ` : ''}
+        <button class="btn btn-secondary btn-sm" onclick="openGestionarCentro('${o.obra_id}','${o.nombre.replace(/'/g,"\'")}')">⚙️ Gestionar</button>
+      </div>
     </div>`).join('');
 }
 
@@ -1866,6 +1909,170 @@ async function desasignarTrabajadorDeCentro(obraId, trabId) {
   renderTrabAsignados(data||[], obraId);
 }
 
+
+// ═══════════════════════════════════════════════════════
+// USUARIOS — CRUD (ADMIN ONLY)
+// ═══════════════════════════════════════════════════════
+async function loadPageUsuarios() {
+  document.getElementById('usuariosTable').innerHTML = '<tr><td colspan="6" class="empty-state">Cargando...</td></tr>';
+  const { data, error } = await sb.from('perfiles').select('user_id, nombre, email, rol, activo, created_at').order('created_at', { ascending: false });
+  if (error) { document.getElementById('usuariosTable').innerHTML = `<tr><td colspan="6" class="empty-state">Error: ${error.message}</td></tr>`; return; }
+
+  const rows = (data||[]).map(u => {
+    const rolLabel = u.rol === 'ADMIN' ? '🔑 Admin' : u.rol === 'SUPERVISOR' ? '👷 Supervisor' : '👁️ Visor';
+    const estado   = u.activo !== false ? '<span class="badge ok">Activo</span>' : '<span class="badge danger">Inactivo</span>';
+    const fecha    = u.created_at ? new Date(u.created_at).toLocaleDateString('es-CL') : '—';
+    const esSelf   = u.user_id === currentPerfil?.userId;
+    return `<tr>
+      <td><div class="worker-name">${u.nombre||'—'}${esSelf ? ' <span style="font-size:10px;color:var(--orange)">(tú)</span>' : ''}</div></td>
+      <td style="font-size:12px;color:var(--muted)">${u.email||'—'}</td>
+      <td>${rolLabel}</td>
+      <td>${estado}</td>
+      <td style="font-size:12px;color:var(--muted)">${fecha}</td>
+      <td>
+        <div class="action-btns">
+          ${!esSelf ? `
+            ${u.activo !== false
+              ? `<button class="btn btn-danger btn-sm" onclick="suspenderUsuario('${u.user_id}','${(u.nombre||'').replace(/'/g,"\'")}')">🚫 Suspender</button>`
+              : `<button class="btn btn-success btn-sm" onclick="reactivarUsuario('${u.user_id}','${(u.nombre||'').replace(/'/g,"\'")}')">✅ Reactivar</button>`
+            }
+            <button class="btn btn-danger btn-sm" onclick="eliminarUsuario('${u.user_id}','${(u.nombre||'').replace(/'/g,"\'")}')">🗑️</button>
+          ` : '<span style="font-size:11px;color:var(--muted)">—</span>'}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('usuariosTable').innerHTML = rows || '<tr><td colspan="6" class="empty-state">Sin usuarios</td></tr>';
+}
+
+async function openNuevoUsuario() {
+  document.getElementById('usuarioNombre').value = '';
+  document.getElementById('usuarioEmail').value = '';
+  document.getElementById('usuarioRol').value = 'SUPERVISOR';
+  document.getElementById('usuarioFormError').style.display = 'none';
+
+  // Load obras for assignment
+  const { data: obras } = await sb.from('obras').select('obra_id, nombre').eq('activo', true);
+  const sel = document.getElementById('usuarioCentroSelect');
+  sel.innerHTML = '<option value="">Sin asignación inicial</option>' + (obras||[]).map(o => `<option value="${o.obra_id}">${o.nombre}</option>`).join('');
+
+  document.getElementById('modalNuevoUsuario').classList.add('open');
+}
+
+async function saveNuevoUsuario() {
+  const nombre  = document.getElementById('usuarioNombre').value.trim();
+  const email   = document.getElementById('usuarioEmail').value.trim().toLowerCase();
+  const rol     = document.getElementById('usuarioRol').value;
+  const obraId  = document.getElementById('usuarioCentroSelect').value;
+  const errEl   = document.getElementById('usuarioFormError');
+
+  if (!nombre || !email) { errEl.textContent = 'Nombre y email son obligatorios'; errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+
+  // Invite user via Supabase Admin (uses service role — here we use signUp with redirect)
+  const { data: signUpData, error: signUpErr } = await sb.auth.admin ? 
+    sb.auth.admin.inviteUserByEmail(email) :
+    sb.auth.signUp({ email, password: Math.random().toString(36).slice(-12) + 'A1!', options: { data: { nombre, rol } } });
+
+  if (signUpErr) { errEl.textContent = signUpErr.message; errEl.style.display='block'; return; }
+
+  const userId = signUpData?.user?.id;
+  if (userId) {
+    // Create perfil
+    await sb.from('perfiles').upsert({ user_id: userId, nombre, email, rol, org_id: currentPerfil.org_id, activo: true });
+    // Assign to centro if selected
+    if (obraId) await sb.from('obra_usuarios').upsert({ user_id: userId, obra_id: obraId, rol_obra: rol });
+  }
+
+  closeModal('modalNuevoUsuario');
+  await loadPageUsuarios();
+}
+
+async function suspenderUsuario(userId, nombre) {
+  if (!confirm(`¿Suspender acceso de ${nombre}?`)) return;
+  await sb.from('perfiles').update({ activo: false }).eq('user_id', userId);
+  await loadPageUsuarios();
+}
+
+async function reactivarUsuario(userId, nombre) {
+  if (!confirm(`¿Reactivar acceso de ${nombre}?`)) return;
+  await sb.from('perfiles').update({ activo: true }).eq('user_id', userId);
+  await loadPageUsuarios();
+}
+
+async function eliminarUsuario(userId, nombre) {
+  if (!confirm(`¿Eliminar permanentemente a ${nombre}? Esta acción no se puede deshacer.`)) return;
+  if (!confirm('Segunda confirmación: ¿estás seguro?')) return;
+  await sb.from('perfiles').delete().eq('user_id', userId);
+  await loadPageUsuarios();
+}
+
+// ═══════════════════════════════════════════════════════
+// CENTROS DE COSTO — CRUD (ADMIN ONLY)
+// ═══════════════════════════════════════════════════════
+async function openNuevoCentro() {
+  document.getElementById('modalCentroTitle').textContent = 'Nuevo Centro de Costo';
+  document.getElementById('centroEditId').value = '';
+  document.getElementById('centroNombre').value = '';
+  document.getElementById('centroDireccion').value = '';
+  document.getElementById('centroEstado').value = 'ACTIVA';
+  document.getElementById('centroFormError').style.display = 'none';
+  document.getElementById('modalCentroForm').classList.add('open');
+}
+
+async function openEditarCentro(id, nombre, direccion, estado) {
+  document.getElementById('modalCentroTitle').textContent = 'Editar Centro de Costo';
+  document.getElementById('centroEditId').value = id;
+  document.getElementById('centroNombre').value = nombre;
+  document.getElementById('centroDireccion').value = direccion || '';
+  document.getElementById('centroEstado').value = estado || 'ACTIVA';
+  document.getElementById('centroFormError').style.display = 'none';
+  document.getElementById('modalCentroForm').classList.add('open');
+}
+
+async function saveCentro() {
+  const nombre    = document.getElementById('centroNombre').value.trim();
+  const direccion = document.getElementById('centroDireccion').value.trim();
+  const estado    = document.getElementById('centroEstado').value;
+  const editId    = document.getElementById('centroEditId').value;
+  const errEl     = document.getElementById('centroFormError');
+
+  if (!nombre) { errEl.textContent = 'El nombre es obligatorio'; errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+
+  if (editId) {
+    const { error } = await sb.from('obras').update({ nombre, direccion, estado }).eq('obra_id', editId);
+    if (error) { errEl.textContent = error.message; errEl.style.display='block'; return; }
+  } else {
+    const { error } = await sb.from('obras').insert({ nombre, direccion, estado: estado||'ACTIVA', org_id: currentPerfil.org_id });
+    if (error) { errEl.textContent = error.message; errEl.style.display='block'; return; }
+  }
+
+  closeModal('modalCentroForm');
+  allCentros = [];
+  await loadPageCentros();
+}
+
+async function eliminarCentro(id, nombre) {
+  if (!confirm(`¿Eliminar el centro "${nombre}"? Se perderán todas las asignaciones.`)) return;
+  const { error } = await sb.from('obras').delete().eq('obra_id', id);
+  if (error) { alert('Error: ' + error.message); return; }
+  allCentros = [];
+  await loadPageCentros();
+}
+
+// ═══════════════════════════════════════════════════════
+// EPP CATÁLOGO — ELIMINAR
+// ═══════════════════════════════════════════════════════
+async function eliminarEpp(eppId, nombre) {
+  if (!confirm(`¿Eliminar "${nombre}" del catálogo? El historial de entregas se conservará.`)) return;
+  // Soft delete — mark inactive
+  const { error } = await sb.from('catalogo_epp').update({ activo: false }).eq('epp_id', eppId);
+  if (error) { alert('Error: ' + error.message); return; }
+  await loadPageStock();
+}
+
 </script>
 
 <!-- MODAL: CREAR/EDITAR TRABAJADOR -->
@@ -2026,6 +2233,71 @@ async function desasignarTrabajadorDeCentro(obraId, trabId) {
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modalAsignarSupervisor')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NUEVO USUARIO -->
+<div class="modal-bg" id="modalNuevoUsuario">
+  <div class="modal" style="max-width:500px">
+    <button class="modal-close" onclick="closeModal('modalNuevoUsuario')">✕</button>
+    <div class="modal-title" id="modalUsuarioTitle">Nuevo Usuario</div>
+    <div class="modal-sub">Se enviará una invitación al email ingresado</div>
+    <div class="form-error" id="usuarioFormError"></div>
+    <div class="form-group">
+      <label class="form-label">Nombre *</label>
+      <input class="form-input" id="usuarioNombre" placeholder="Juan Pérez">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email *</label>
+      <input class="form-input" type="email" id="usuarioEmail" placeholder="juan@empresa.cl">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Rol *</label>
+      <select class="form-select" id="usuarioRol">
+        <option value="SUPERVISOR">Supervisor</option>
+        <option value="READONLY">Visor (solo lectura)</option>
+        <option value="ADMIN">Administrador</option>
+      </select>
+    </div>
+    <div class="form-group" id="usuarioCentroGroup">
+      <label class="form-label">Asignar a Centro de Costo</label>
+      <select class="form-select" id="usuarioCentroSelect">
+        <option value="">Sin asignación inicial</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalNuevoUsuario')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveNuevoUsuario()">Crear e Invitar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NUEVO / EDITAR CENTRO DE COSTO -->
+<div class="modal-bg" id="modalCentroForm">
+  <div class="modal" style="max-width:500px">
+    <button class="modal-close" onclick="closeModal('modalCentroForm')">✕</button>
+    <div class="modal-title" id="modalCentroTitle">Nuevo Centro de Costo</div>
+    <div class="form-error" id="centroFormError"></div>
+    <input type="hidden" id="centroEditId">
+    <div class="form-group">
+      <label class="form-label">Nombre *</label>
+      <input class="form-input" id="centroNombre" placeholder="Obra Norte - Temuco">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Dirección</label>
+      <input class="form-input" id="centroDireccion" placeholder="Av. Principal 123">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Estado</label>
+      <select class="form-select" id="centroEstado">
+        <option value="ACTIVA">Activa</option>
+        <option value="INACTIVA">Inactiva</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalCentroForm')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCentro()">Guardar</button>
     </div>
   </div>
 </div>
