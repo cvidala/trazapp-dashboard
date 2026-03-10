@@ -157,6 +157,45 @@
   .page{display:none;width:100%;}
   .page.active{display:block;width:100%;}
   .content{display:block !important;}
+  /* FORM ELEMENTS */
+  .form-group{margin-bottom:16px;}
+  .form-label{display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px;}
+  .form-input{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;color:var(--navy);outline:none;transition:border-color 0.15s;background:white;}
+  .form-input:focus{border-color:var(--orange);}
+  .form-select{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;color:var(--navy);outline:none;background:white;cursor:pointer;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .btn{padding:10px 20px;border:none;border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+  .btn-primary{background:var(--orange);color:white;}.btn-primary:hover{background:var(--orange2);}
+  .btn-secondary{background:var(--bg);color:var(--navy);border:1px solid var(--border);}.btn-secondary:hover{background:var(--border);}
+  .btn-danger{background:#fee2e2;color:#b91c1c;}.btn-danger:hover{background:#fecaca;}
+  .btn-success{background:#dcfce7;color:#15803d;}.btn-success:hover{background:#bbf7d0;}
+  .btn-sm{padding:6px 12px;font-size:11px;}
+  .modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:24px;padding-top:16px;border-top:1px solid var(--border);}
+  .form-error{background:#fee2e2;color:#b91c1c;border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:12px;display:none;}
+
+  /* ACTION BUTTONS IN TABLE */
+  .action-btns{display:flex;gap:6px;}
+
+  /* ENTREGA DETAIL CARD */
+  .entrega-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+  .detail-card{background:var(--bg);border-radius:12px;padding:16px;}
+  .detail-card-label{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+  .detail-card-value{font-size:14px;font-weight:600;color:var(--navy);}
+  .evidence-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
+  .evidence-box{background:var(--bg);border-radius:12px;padding:12px;text-align:center;}
+  .evidence-box img{width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-top:8px;}
+  .evidence-box-label{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
+  .hash-box{background:var(--bg);border-radius:10px;padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);word-break:break-all;margin-top:8px;}
+
+  /* CHIP LIST */
+  .chip-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:var(--bg);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--navy);}
+  .chip-remove{cursor:pointer;color:var(--muted);font-size:14px;line-height:1;}.chip-remove:hover{color:var(--red);}
+
+  /* STOCK ENTRY */
+  .stock-entry-row{display:flex;gap:10px;align-items:flex-end;margin-bottom:10px;}
+  .stock-entry-row .form-group{flex:1;margin-bottom:0;}
+
   .page-header{margin-bottom:24px;}
   .page-title{font-size:22px;font-weight:700;color:var(--navy);letter-spacing:-0.3px;}
   .page-sub{font-size:13px;color:var(--muted);margin-top:4px;}
@@ -407,14 +446,22 @@
 
       <!-- PAGE: TRABAJADORES -->
       <div class="page" id="page-trabajadores">
-        <div class="page-header">
-          <div class="page-title">👷 Trabajadores</div>
-          <div class="page-sub">Listado completo de trabajadores activos</div>
+        <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
+          <div>
+            <div class="page-title">👷 Trabajadores</div>
+            <div class="page-sub">Listado completo de trabajadores activos</div>
+          </div>
+          <button class="btn btn-primary" onclick="openNuevoTrabajador()">+ Nuevo Trabajador</button>
         </div>
         <div class="search-bar">
           <input class="search-input" id="trabSearch" placeholder="🔍 Buscar por nombre o RUT..." oninput="filterTrabajadores()">
           <select class="search-select" id="trabCentroFilter" onchange="filterTrabajadores()">
             <option value="all">Todos los centros</option>
+          </select>
+          <select class="search-select" id="trabEstadoFilter" onchange="filterTrabajadores()">
+            <option value="activo">Activos</option>
+            <option value="all">Todos</option>
+            <option value="inactivo">Inactivos</option>
           </select>
         </div>
         <div class="card">
@@ -422,9 +469,9 @@
             <table class="full-table">
               <thead><tr>
                 <th>Trabajador</th><th>RUT</th><th>Centro de Costo</th>
-                <th>EPP Completo</th><th>Estado</th><th>Última entrega</th>
+                <th>EPP Completo</th><th>Estado</th><th>Última entrega</th><th>Acciones</th>
               </tr></thead>
-              <tbody id="trabTable"><tr><td colspan="6" class="empty-state">Cargando...</td></tr></tbody>
+              <tbody id="trabTable"><tr><td colspan="7" class="empty-state">Cargando...</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -432,9 +479,15 @@
 
       <!-- PAGE: STOCK -->
       <div class="page" id="page-stock">
-        <div class="page-header">
-          <div class="page-title">📦 Stock EPP</div>
-          <div class="page-sub">Inventario por bodega y centro de costo</div>
+        <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
+          <div>
+            <div class="page-title">📦 Stock EPP</div>
+            <div class="page-sub">Inventario por bodega y centro de costo</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary" onclick="openEntradaStock()">📥 Entrada de Stock</button>
+            <button class="btn btn-primary" onclick="openNuevoEpp()">+ Nuevo EPP</button>
+          </div>
         </div>
         <div class="search-bar">
           <input class="search-input" id="stockSearch" placeholder="🔍 Buscar EPP..." oninput="filterStock()">
@@ -496,7 +549,7 @@
       <div class="page" id="page-centros">
         <div class="page-header">
           <div class="page-title">🏗️ Centros de Costo</div>
-          <div class="page-sub">Resumen operativo por centro</div>
+          <div class="page-sub">Resumen operativo y asignación de personas</div>
         </div>
         <div id="centrosList"></div>
       </div>
@@ -1045,7 +1098,7 @@ async function loadPageTrabajadores() {
   try {
     // 1) Traer todos los trabajador_obras con join
     const { data: rows, error } = await sb.from('trabajador_obras')
-      .select('obra_id, obras(nombre), trabajadores(trabajador_id, nombre, rut)');
+      .select('obra_id, obras(nombre), trabajadores(trabajador_id, nombre, rut, activo, cargo)');
 
     if (error) throw error;
 
@@ -1126,12 +1179,15 @@ async function loadPageTrabajadores() {
 
 function renderTrabajadoresPage(data) {
   const tbody = document.getElementById('trabTable');
-  if (!data.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Sin trabajadores</td></tr>'; return; }
+  if (!data.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Sin trabajadores</td></tr>'; return; }
   tbody.innerHTML = data.map(t => {
     const barClass = t.pct === 100 ? '' : t.pct >= 60 ? 'warn' : 'danger';
     const [bc, bl] = t.pct === 100 ? ['ok','✅ Al día'] : t.pct >= 60 ? ['warn','⚠️ Parcial'] : ['danger','🚨 Crítico'];
-    return `<tr class="clickable-row" onclick="openTrabajadorModal('${t.id}','${t.obraId}','${t.nombre.replace(/'/g,"\'")}')">
-      <td><div class="worker-name">${t.nombre}</div></td>
+    const inactivo = t.activo === false;
+    return `<tr style="${inactivo ? 'opacity:0.5;' : ''}">
+      <td onclick="openTrabajadorModal('${t.id}','${t.obraId}','${t.nombre.replace(/'/g,"\'")}',event)" style="cursor:pointer">
+        <div class="worker-name">${t.nombre}${inactivo ? ' <span style="font-size:10px;color:var(--muted)">(inactivo)</span>' : ''}</div>
+      </td>
       <td><div class="worker-rut">${t.rut || '—'}</div></td>
       <td style="color:var(--muted);font-size:12px;">${t.centro}</td>
       <td><div style="display:flex;align-items:center;gap:8px;">
@@ -1140,22 +1196,35 @@ function renderTrabajadoresPage(data) {
       </div></td>
       <td><span class="badge ${bc}">${bl}</span></td>
       <td style="font-size:12px;color:var(--muted);">${formatRelative(t.ultimaEntrega)}</td>
+      <td>
+        <div class="action-btns">
+          <button class="btn btn-secondary btn-sm" title="Centros de costo" onclick="openAsignarCentro('${t.id}','${t.nombre.replace(/'/g,"\'")}')">🏗️</button>
+          <button class="btn btn-secondary btn-sm" title="Editar" onclick="openEditarTrabajador('${t.id}','${t.nombre.replace(/'/g,"\'")}','${(t.rut||'').replace(/'/g,"\'")}','${t.cargo||''}')">✏️</button>
+          ${!inactivo
+            ? `<button class="btn btn-danger btn-sm" title="Dar de baja" onclick="darDeBajaTrabajador('${t.id}','${t.nombre.replace(/'/g,"\'")}')">🚫</button>`
+            : `<button class="btn btn-success btn-sm" title="Reactivar" onclick="reactivarTrabajador('${t.id}','${t.nombre.replace(/'/g,"\'")}')">✅</button>`
+          }
+        </div>
+      </td>
     </tr>`;
   }).join('');
 }
 
 function filterTrabajadores() {
-  const q     = document.getElementById('trabSearch').value.toLowerCase();
+  const q      = document.getElementById('trabSearch').value.toLowerCase();
   const centro = document.getElementById('trabCentroFilter').value;
+  const estado = document.getElementById('trabEstadoFilter').value;
   const filtered = allTrabajadores.filter(t =>
     (!q || t.nombre.toLowerCase().includes(q) || (t.rut||'').toLowerCase().includes(q)) &&
-    (centro === 'all' || t.centro === centro)
+    (centro === 'all' || t.centro === centro) &&
+    (estado === 'all' || (estado === 'activo' && t.activo !== false) || (estado === 'inactivo' && t.activo === false))
   );
   renderTrabajadoresPage(filtered);
 }
 
 // ── MODAL TRABAJADOR ──────────────────────────────────────────────
-async function openTrabajadorModal(trabajadorId, obraId, nombre) {
+async function openTrabajadorModal(trabajadorId, obraId, nombre, event) {
+  if (event) event.stopPropagation();
   document.getElementById('modalTrabTitle').textContent = nombre;
   document.getElementById('modalTrabSub').textContent = 'Historial EPP';
   document.getElementById('modalTrabBody').innerHTML = '<div class="empty-state">Cargando...</div>';
@@ -1330,48 +1399,108 @@ function filterEntregas() {
 }
 
 async function openEntregaModal(eventId) {
-  document.getElementById('modalEntregaBody').innerHTML = '<div class="empty-state">Cargando...</div>';
-  document.getElementById('modalEntrega').classList.add('open');
+  document.getElementById('modalDetalleBody').innerHTML = '<div class="empty-state">Cargando...</div>';
+  document.getElementById('modalEntregaDetalle').classList.add('open');
 
   const { data: e } = await sb.from('entregas_epp')
     .select('*, trabajadores(nombre,rut), obras(nombre)')
     .eq('event_id', eventId).maybeSingle();
-  if (!e) { document.getElementById('modalEntregaBody').innerHTML = '<div class="empty-state">No encontrado</div>'; return; }
+  if (!e) { document.getElementById('modalDetalleBody').innerHTML = '<div class="empty-state">No encontrado</div>'; return; }
 
   const { data: catalogo } = await sb.from('catalogo_epp').select('epp_id, nombre, codigo');
   const catMap = {};
   for (const c of (catalogo||[])) catMap[c.epp_id] = c;
 
-  document.getElementById('modalEntregaTitle').textContent = `Entrega — ${e.trabajadores?.nombre||'—'}`;
-  document.getElementById('modalEntregaSub').textContent = `${e.obras?.nombre||'—'} · ${new Date(e.created_at).toLocaleString('es-CL')}`;
-
   const tipo = e.validacion_tipo === 'OFFLINE_SYNC' ? '📴 Offline Sync' : e.validacion_tipo === 'FIRMA_DIGITAL' ? '✍️ Firma Digital' : '🌐 Online';
+  const fecha = new Date(e.created_at).toLocaleString('es-CL', {dateStyle:'long', timeStyle:'short'});
 
-  document.getElementById('modalEntregaBody').innerHTML = `
-    <div class="modal-section">
-      <div class="modal-section-title">Información general</div>
-      <div class="detail-row"><span class="detail-label">ID Evento</span><span class="detail-value" style="font-family:'JetBrains Mono',monospace;font-size:11px;">${e.event_id}</span></div>
-      <div class="detail-row"><span class="detail-label">Trabajador</span><span class="detail-value">${e.trabajadores?.nombre||'—'}</span></div>
-      <div class="detail-row"><span class="detail-label">RUT</span><span class="detail-value">${e.trabajadores?.rut||'—'}</span></div>
-      <div class="detail-row"><span class="detail-label">Centro de Costo</span><span class="detail-value">${e.obras?.nombre||'—'}</span></div>
-      <div class="detail-row"><span class="detail-label">Tipo validación</span><span class="detail-value">${tipo}</span></div>
-      <div class="detail-row"><span class="detail-label">Fecha</span><span class="detail-value">${new Date(e.created_at).toLocaleString('es-CL')}</span></div>
+  document.getElementById('modalDetalleTitulo').textContent = `Entrega #${e.event_id.slice(-8).toUpperCase()}`;
+  document.getElementById('modalDetalleSub').textContent = `${e.trabajadores?.nombre||'—'} · ${e.obras?.nombre||'—'}`;
+
+  const eppList = (e.items||[]).map(it => {
+    const cat = catMap[it.epp_id] || {};
+    const eppIcons = {CASCO:'🪖',CHALECO:'🦺',LENTES:'🥽',GUANTES:'🧤',BOTAS:'👢',ARNÉS:'🪝',MASCARILLA:'😷'};
+    const icon = eppIcons[(cat.codigo||'').toUpperCase()] || '📦';
+    return `<div class="epp-item">
+      <div style="font-size:22px">${icon}</div>
+      <div style="flex:1"><div class="epp-item-name">${cat.nombre||'EPP'}</div><div style="font-size:11px;color:var(--muted)">${cat.codigo||it.epp_id}</div></div>
+      <div style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--navy)">×${it.cantidad}</div>
+    </div>`;
+  }).join('') || '<div class="empty-state">Sin items</div>';
+
+  document.getElementById('modalDetalleBody').innerHTML = `
+    <!-- ID Registro destacado -->
+    <div style="background:var(--navy);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);font-weight:700;letter-spacing:1px;text-transform:uppercase;">N° de Registro</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:white;letter-spacing:1px;">${e.event_id}</div>
+      </div>
+      <span style="background:rgba(255,255,255,0.1);color:white;font-size:12px;font-weight:600;padding:6px 14px;border-radius:20px;">${tipo}</span>
     </div>
-    <div class="modal-section">
-      <div class="modal-section-title">EPP entregado</div>
-      ${(e.items||[]).map(it => {
-        const cat = catMap[it.epp_id] || {};
-        return `<div class="epp-item"><div style="font-size:20px">📦</div><div class="epp-item-name">${cat.nombre||it.epp_id}</div><div class="epp-item-qty">x${it.cantidad}</div></div>`;
-      }).join('') || '<div class="empty-state">Sin items</div>'}
+
+    <!-- Grid info -->
+    <div class="entrega-detail-grid">
+      <div class="detail-card">
+        <div class="detail-card-label">👷 Trabajador</div>
+        <div class="detail-card-value">${e.trabajadores?.nombre||'—'}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);margin-top:2px">${e.trabajadores?.rut||''}</div>
+      </div>
+      <div class="detail-card">
+        <div class="detail-card-label">🏗️ Centro de Costo</div>
+        <div class="detail-card-value">${e.obras?.nombre||'—'}</div>
+      </div>
+      <div class="detail-card">
+        <div class="detail-card-label">📅 Fecha y hora</div>
+        <div class="detail-card-value" style="font-size:13px">${fecha}</div>
+      </div>
+      <div class="detail-card">
+        <div class="detail-card-label">✅ Validación</div>
+        <div class="detail-card-value">${tipo}</div>
+      </div>
     </div>
+
+    <!-- EPP -->
+    <div class="modal-section">
+      <div class="modal-section-title">EPP Entregado</div>
+      ${eppList}
+    </div>
+
+    <!-- Evidencias -->
     ${e.evidencia_foto_url || e.firma_url ? `
     <div class="modal-section">
       <div class="modal-section-title">Evidencias</div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;">
-        ${e.evidencia_foto_url ? `<a href="${e.evidencia_foto_url}" target="_blank"><img src="${e.evidencia_foto_url}" style="width:120px;height:90px;object-fit:cover;border-radius:10px;border:1px solid var(--border)"></a>` : ''}
-        ${e.firma_url ? `<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Firma</div><a href="${e.firma_url}" target="_blank"><img src="${e.firma_url}" style="width:120px;height:60px;object-fit:contain;border-radius:10px;border:1px solid var(--border);background:white;padding:4px"></a></div>` : ''}
+      <div class="evidence-grid">
+        ${e.evidencia_foto_url ? `
+        <div class="evidence-box">
+          <div class="evidence-box-label">📷 Fotografía</div>
+          <a href="${e.evidencia_foto_url}" target="_blank">
+            <img src="${e.evidencia_foto_url}" alt="Evidencia foto">
+          </a>
+        </div>` : ''}
+        ${e.firma_url ? `
+        <div class="evidence-box">
+          <div class="evidence-box-label">✍️ Firma Digital</div>
+          <a href="${e.firma_url}" target="_blank">
+            <img src="${e.firma_url}" alt="Firma" style="background:white;padding:8px;object-fit:contain;">
+          </a>
+        </div>` : ''}
       </div>
-    </div>` : ''}`;
+    </div>` : ''}
+
+    <!-- Hash integridad -->
+    ${e.evidencia_hash ? `
+    <div class="modal-section">
+      <div class="modal-section-title">🔒 Hash de Integridad</div>
+      <div class="hash-box">${e.evidencia_hash}</div>
+    </div>` : ''}
+
+    <!-- Declaración -->
+    ${e.declaracion_text ? `
+    <div class="modal-section">
+      <div class="modal-section-title">📄 Declaración</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.6;background:var(--bg);padding:14px;border-radius:10px;">${e.declaracion_text}</div>
+    </div>` : ''}
+  `;
 }
 
 // ── PAGE: ALERTAS ─────────────────────────────────────────────────
@@ -1455,9 +1584,9 @@ function renderCentrosPage(data) {
   const cont = document.getElementById('centrosList');
   if (!data.length) { cont.innerHTML = '<div class="empty-state">Sin centros de costo</div>'; return; }
   cont.innerHTML = data.map(o => `
-    <div class="centro-card">
+    <div class="centro-card" style="position:relative">
       <div class="centro-icon">🏗️</div>
-      <div>
+      <div style="flex:1">
         <div class="centro-name">${o.nombre}</div>
         <div class="centro-dir">${o.direccion||'Sin dirección registrada'}</div>
         <div style="margin-top:8px"><span class="centro-badge ${o.estado==='ACTIVA'?'activa':'inactiva'}">${o.estado}</span></div>
@@ -1466,6 +1595,7 @@ function renderCentrosPage(data) {
         <div><div class="centro-stat-num">${o.trabajadoresCount||0}</div><div class="centro-stat-label">Trabajadores</div></div>
         <div><div class="centro-stat-num">${o.entregasCount||0}</div><div class="centro-stat-label">Entregas</div></div>
       </div>
+      <button class="btn btn-secondary btn-sm" style="position:absolute;top:16px;right:16px" onclick="openGestionarCentro('${o.obra_id}','${o.nombre.replace(/'/g,"\'")}')">⚙️ Gestionar</button>
     </div>`).join('');
 }
 
@@ -1478,6 +1608,426 @@ document.addEventListener('click', e => {
   if (e.target.classList.contains('modal-bg')) e.target.classList.remove('open');
 });
 
+
+// ═══════════════════════════════════════════════════════
+// TRABAJADORES — CRUD
+// ═══════════════════════════════════════════════════════
+async function openNuevoTrabajador() {
+  document.getElementById('modalTrabFormTitle').textContent = 'Nuevo Trabajador';
+  document.getElementById('trabNombre').value = '';
+  document.getElementById('trabRut').value = '';
+  document.getElementById('trabCargo').value = '';
+  document.getElementById('trabFormError').style.display = 'none';
+  document.getElementById('trabNombre').dataset.editId = '';
+  const { data: obras } = await sb.from('obras').select('obra_id, nombre').eq('activo', true);
+  const sel = document.getElementById('trabObraSelect');
+  sel.innerHTML = (obras||[]).map(o => `<option value="${o.obra_id}">${o.nombre}</option>`).join('');
+  document.getElementById('modalTrabForm').classList.add('open');
+}
+
+async function openEditarTrabajador(id, nombre, rut, cargo) {
+  document.getElementById('modalTrabFormTitle').textContent = 'Editar Trabajador';
+  document.getElementById('trabNombre').value = nombre;
+  document.getElementById('trabRut').value = rut;
+  document.getElementById('trabCargo').value = cargo || '';
+  document.getElementById('trabFormError').style.display = 'none';
+  document.getElementById('trabNombre').dataset.editId = id;
+  const { data: obras } = await sb.from('obras').select('obra_id, nombre').eq('activo', true);
+  const sel = document.getElementById('trabObraSelect');
+  sel.innerHTML = (obras||[]).map(o => `<option value="${o.obra_id}">${o.nombre}</option>`).join('');
+  document.getElementById('modalTrabForm').classList.add('open');
+}
+
+async function saveTrabajador() {
+  const nombre = document.getElementById('trabNombre').value.trim();
+  const rut    = document.getElementById('trabRut').value.trim();
+  const cargo  = document.getElementById('trabCargo').value.trim();
+  const obraId = document.getElementById('trabObraSelect').value;
+  const editId = document.getElementById('trabNombre').dataset.editId;
+  const errEl  = document.getElementById('trabFormError');
+  if (!nombre || !rut) { errEl.textContent = 'Nombre y RUT son obligatorios'; errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+  if (editId) {
+    const { error } = await sb.from('trabajadores').update({ nombre, rut, cargo }).eq('trabajador_id', editId);
+    if (error) { errEl.textContent = error.message; errEl.style.display='block'; return; }
+  } else {
+    const { data: trab, error } = await sb.from('trabajadores').insert({ nombre, rut, cargo, activo: true }).select().single();
+    if (error) { errEl.textContent = error.message; errEl.style.display='block'; return; }
+    if (obraId) await sb.from('trabajador_obras').insert({ trabajador_id: trab.trabajador_id, obra_id: obraId });
+  }
+  closeModal('modalTrabForm');
+  await loadPageTrabajadores();
+}
+
+async function darDeBajaTrabajador(id, nombre) {
+  if (!confirm(`¿Dar de baja a ${nombre}? Quedará inactivo pero se conservará su historial.`)) return;
+  await sb.from('trabajadores').update({ activo: false }).eq('trabajador_id', id);
+  await loadPageTrabajadores();
+}
+
+async function reactivarTrabajador(id, nombre) {
+  if (!confirm(`¿Reactivar a ${nombre}?`)) return;
+  await sb.from('trabajadores').update({ activo: true }).eq('trabajador_id', id);
+  await loadPageTrabajadores();
+}
+
+async function openAsignarCentro(trabId, nombre) {
+  document.getElementById('asignarTrabId').value = trabId;
+  document.getElementById('modalAsignarCentroSub').textContent = nombre;
+  document.getElementById('centrosAsignadosList').innerHTML = 'Cargando...';
+  const [{ data: obras }, { data: asignados }] = await Promise.all([
+    sb.from('obras').select('obra_id, nombre').eq('activo', true),
+    sb.from('trabajador_obras').select('obra_id, obras(nombre)').eq('trabajador_id', trabId)
+  ]);
+  const asignadosSet = new Set((asignados||[]).map(a => a.obra_id));
+  document.getElementById('asignarObraSelect').innerHTML = (obras||[]).filter(o => !asignadosSet.has(o.obra_id)).map(o => `<option value="${o.obra_id}">${o.nombre}</option>`).join('');
+  renderCentrosAsignados(asignados||[], trabId);
+  document.getElementById('modalAsignarCentro').classList.add('open');
+}
+
+function renderCentrosAsignados(asignados, trabId) {
+  const el = document.getElementById('centrosAsignadosList');
+  if (!asignados.length) { el.innerHTML = '<span style="color:var(--muted);font-size:12px">Sin centros asignados</span>'; return; }
+  el.innerHTML = asignados.map(a => `<span class="chip">${a.obras?.nombre||a.obra_id}<span class="chip-remove" onclick="desasignarCentro('${trabId}','${a.obra_id}')">×</span></span>`).join('');
+}
+
+async function asignarCentro() {
+  const trabId = document.getElementById('asignarTrabId').value;
+  const obraId = document.getElementById('asignarObraSelect').value;
+  if (!obraId) return;
+  await sb.from('trabajador_obras').upsert({ trabajador_id: trabId, obra_id: obraId });
+  const [{ data: asignados }, { data: obras }] = await Promise.all([
+    sb.from('trabajador_obras').select('obra_id, obras(nombre)').eq('trabajador_id', trabId),
+    sb.from('obras').select('obra_id, nombre').eq('activo', true)
+  ]);
+  const asignadosSet = new Set((asignados||[]).map(a => a.obra_id));
+  document.getElementById('asignarObraSelect').innerHTML = (obras||[]).filter(o => !asignadosSet.has(o.obra_id)).map(o => `<option value="${o.obra_id}">${o.nombre}</option>`).join('');
+  renderCentrosAsignados(asignados||[], trabId);
+  loadPageTrabajadores();
+}
+
+async function desasignarCentro(trabId, obraId) {
+  if (!confirm('¿Quitar este centro de costo al trabajador?')) return;
+  await sb.from('trabajador_obras').delete().eq('trabajador_id', trabId).eq('obra_id', obraId);
+  const { data: asignados } = await sb.from('trabajador_obras').select('obra_id, obras(nombre)').eq('trabajador_id', trabId);
+  renderCentrosAsignados(asignados||[], trabId);
+}
+
+// ═══════════════════════════════════════════════════════
+// STOCK EPP — CRUD
+// ═══════════════════════════════════════════════════════
+async function openNuevoEpp() {
+  ['eppNombre','eppCodigo','eppCategoria','eppVidaUtil'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('eppFormError').style.display = 'none';
+  document.getElementById('modalNuevoEpp').classList.add('open');
+}
+
+async function saveNuevoEpp() {
+  const nombre    = document.getElementById('eppNombre').value.trim();
+  const codigo    = document.getElementById('eppCodigo').value.trim().toUpperCase();
+  const categoria = document.getElementById('eppCategoria').value.trim();
+  const vidaUtil  = parseInt(document.getElementById('eppVidaUtil').value) || null;
+  const errEl     = document.getElementById('eppFormError');
+  if (!nombre || !codigo) { errEl.textContent = 'Nombre y código son obligatorios'; errEl.style.display='block'; return; }
+  const { error } = await sb.from('catalogo_epp').insert({ nombre, codigo, categoria, vida_util_dias: vidaUtil, activo: true });
+  if (error) { errEl.textContent = error.message; errEl.style.display='block'; return; }
+  closeModal('modalNuevoEpp');
+  await loadPageStock();
+}
+
+let stockEppCatalog = [];
+async function openEntradaStock() {
+  document.getElementById('stockFormError').style.display = 'none';
+  document.getElementById('stockMotivo').value = '';
+  const [{ data: bodegas }, { data: catalogo }] = await Promise.all([
+    sb.from('bodegas').select('bodega_id, nombre, obras(nombre)'),
+    sb.from('catalogo_epp').select('epp_id, nombre, codigo').eq('activo', true)
+  ]);
+  stockEppCatalog = catalogo || [];
+  document.getElementById('stockBodegaSelect').innerHTML = (bodegas||[]).map(b => `<option value="${b.bodega_id}">${b.nombre} — ${b.obras?.nombre||''}</option>`).join('');
+  document.getElementById('stockEntryRows').innerHTML = '';
+  addStockRow();
+  document.getElementById('modalEntradaStock').classList.add('open');
+}
+
+function addStockRow() {
+  const container = document.getElementById('stockEntryRows');
+  const idx = Date.now();
+  const options = stockEppCatalog.map(e => `<option value="${e.epp_id}">${e.nombre} (${e.codigo})</option>`).join('');
+  const row = document.createElement('div');
+  row.className = 'stock-entry-row';
+  row.id = `row_${idx}`;
+  row.innerHTML = `
+    <div class="form-group"><label class="form-label">EPP *</label><select class="form-select" id="eppSel_${idx}">${options}</select></div>
+    <div class="form-group" style="max-width:100px"><label class="form-label">Cantidad *</label><input class="form-input" type="number" id="qtySel_${idx}" min="1" value="1"></div>
+    <button class="btn btn-danger btn-sm" style="margin-bottom:0" onclick="document.getElementById('row_${idx}').remove()">✕</button>`;
+  container.appendChild(row);
+}
+
+async function saveEntradaStock() {
+  const bodegaId = document.getElementById('stockBodegaSelect').value;
+  const motivo   = document.getElementById('stockMotivo').value.trim();
+  const errEl    = document.getElementById('stockFormError');
+  const rows     = document.getElementById('stockEntryRows').querySelectorAll('.stock-entry-row');
+  const movimientos = [];
+  rows.forEach(row => {
+    const eppSel = row.querySelector('select');
+    const qtySel = row.querySelector('input[type="number"]');
+    if (eppSel && qtySel) {
+      const qty = parseInt(qtySel.value) || 0;
+      if (eppSel.value && qty > 0) movimientos.push({ bodega_id: bodegaId, epp_id: eppSel.value, tipo: 'ENTRADA', cantidad: qty, descripcion: motivo || 'Entrada manual dashboard' });
+    }
+  });
+  if (!movimientos.length) { errEl.textContent = 'Sin cantidades válidas'; errEl.style.display='block'; return; }
+  const { error } = await sb.from('stock_movimientos').insert(movimientos);
+  if (error) { errEl.textContent = error.message; errEl.style.display='block'; return; }
+  closeModal('modalEntradaStock');
+  await loadPageStock();
+}
+
+// ═══════════════════════════════════════════════════════
+// CENTROS DE COSTO — SUPERVISORES Y TRABAJADORES
+// ═══════════════════════════════════════════════════════
+async function openGestionarCentro(obraId, obraNombre) {
+  document.getElementById('modalSupObraId').value = obraId;
+  document.getElementById('modalSupTitle').textContent = obraNombre;
+  document.getElementById('modalSupSub').textContent = 'Asignar supervisores y trabajadores';
+  document.getElementById('supAsignadosList').innerHTML = 'Cargando...';
+  document.getElementById('centroTrabList').innerHTML = 'Cargando...';
+
+  const [{ data: supervisores }, { data: supObra }, { data: trabajadores }, { data: trabObra }] = await Promise.all([
+    sb.from('perfiles').select('user_id, nombre, email').eq('rol', 'SUPERVISOR'),
+    sb.from('obra_usuarios').select('user_id, perfiles(nombre,email)').eq('obra_id', obraId).eq('rol_obra','SUPERVISOR'),
+    sb.from('trabajadores').select('trabajador_id, nombre').eq('activo', true),
+    sb.from('trabajador_obras').select('trabajador_id, trabajadores(nombre)').eq('obra_id', obraId)
+  ]);
+
+  const supSet  = new Set((supObra||[]).map(p => p.user_id));
+  const trabSet = new Set((trabObra||[]).map(t => t.trabajador_id));
+
+  document.getElementById('supSelect').innerHTML = (supervisores||[]).filter(s => !supSet.has(s.user_id)).map(s => `<option value="${s.user_id}">${s.nombre||s.email}</option>`).join('') || '<option disabled>Sin supervisores disponibles</option>';
+  document.getElementById('centroTrabSelect').innerHTML = (trabajadores||[]).filter(t => !trabSet.has(t.trabajador_id)).map(t => `<option value="${t.trabajador_id}">${t.nombre}</option>`).join('') || '<option disabled>Sin trabajadores disponibles</option>';
+
+  renderSupAsignados(supObra||[], obraId);
+  renderTrabAsignados(trabObra||[], obraId);
+  document.getElementById('modalAsignarSupervisor').classList.add('open');
+}
+
+function renderSupAsignados(lista, obraId) {
+  const el = document.getElementById('supAsignadosList');
+  if (!lista.length) { el.innerHTML = '<span style="color:var(--muted);font-size:12px">Sin supervisores asignados</span>'; return; }
+  el.innerHTML = lista.map(p => `<span class="chip">${p.perfiles?.nombre||p.user_id}<span class="chip-remove" onclick="desasignarSupervisor('${obraId}','${p.user_id}')">×</span></span>`).join('');
+}
+
+function renderTrabAsignados(lista, obraId) {
+  const el = document.getElementById('centroTrabList');
+  if (!lista.length) { el.innerHTML = '<span style="color:var(--muted);font-size:12px">Sin trabajadores asignados</span>'; return; }
+  el.innerHTML = lista.map(t => `<span class="chip">${t.trabajadores?.nombre||t.trabajador_id}<span class="chip-remove" onclick="desasignarTrabajadorDeCentro('${obraId}','${t.trabajador_id}')">×</span></span>`).join('');
+}
+
+async function asignarSupervisor() {
+  const obraId = document.getElementById('modalSupObraId').value;
+  const userId = document.getElementById('supSelect').value;
+  if (!userId) return;
+  await sb.from('obra_usuarios').upsert({ obra_id: obraId, user_id: userId, rol_obra: 'SUPERVISOR' });
+  const [{ data: supObra }, { data: todos }] = await Promise.all([
+    sb.from('obra_usuarios').select('user_id, perfiles(nombre,email)').eq('obra_id', obraId).eq('rol_obra','SUPERVISOR'),
+    sb.from('perfiles').select('user_id, nombre, email').eq('rol', 'SUPERVISOR')
+  ]);
+  const set = new Set((supObra||[]).map(p => p.user_id));
+  document.getElementById('supSelect').innerHTML = (todos||[]).filter(s => !set.has(s.user_id)).map(s => `<option value="${s.user_id}">${s.nombre||s.email}</option>`).join('') || '<option disabled>Sin supervisores disponibles</option>';
+  renderSupAsignados(supObra||[], obraId);
+}
+
+async function desasignarSupervisor(obraId, userId) {
+  await sb.from('obra_usuarios').delete().eq('obra_id', obraId).eq('user_id', userId);
+  const { data } = await sb.from('obra_usuarios').select('user_id, perfiles(nombre,email)').eq('obra_id', obraId).eq('rol_obra','SUPERVISOR');
+  renderSupAsignados(data||[], obraId);
+}
+
+async function asignarTrabajadorACentro() {
+  const obraId = document.getElementById('modalSupObraId').value;
+  const trabId = document.getElementById('centroTrabSelect').value;
+  if (!trabId) return;
+  await sb.from('trabajador_obras').upsert({ trabajador_id: trabId, obra_id: obraId });
+  const [{ data: trabObra }, { data: todos }] = await Promise.all([
+    sb.from('trabajador_obras').select('trabajador_id, trabajadores(nombre)').eq('obra_id', obraId),
+    sb.from('trabajadores').select('trabajador_id, nombre').eq('activo', true)
+  ]);
+  const set = new Set((trabObra||[]).map(t => t.trabajador_id));
+  document.getElementById('centroTrabSelect').innerHTML = (todos||[]).filter(t => !set.has(t.trabajador_id)).map(t => `<option value="${t.trabajador_id}">${t.nombre}</option>`).join('') || '<option disabled>Sin trabajadores disponibles</option>';
+  renderTrabAsignados(trabObra||[], obraId);
+  loadPageTrabajadores();
+}
+
+async function desasignarTrabajadorDeCentro(obraId, trabId) {
+  await sb.from('trabajador_obras').delete().eq('obra_id', obraId).eq('trabajador_id', trabId);
+  const { data } = await sb.from('trabajador_obras').select('trabajador_id, trabajadores(nombre)').eq('obra_id', obraId);
+  renderTrabAsignados(data||[], obraId);
+}
+
 </script>
+
+<!-- MODAL: CREAR/EDITAR TRABAJADOR -->
+<div class="modal-bg" id="modalTrabForm">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalTrabForm')">✕</button>
+    <div class="modal-title" id="modalTrabFormTitle">Nuevo Trabajador</div>
+    <div class="modal-sub">Complete los datos del trabajador</div>
+    <div class="form-error" id="trabFormError"></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Nombre completo *</label>
+        <input class="form-input" id="trabNombre" placeholder="Juan Pérez">
+      </div>
+      <div class="form-group">
+        <label class="form-label">RUT *</label>
+        <input class="form-input" id="trabRut" placeholder="12.345.678-9">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Cargo</label>
+        <input class="form-input" id="trabCargo" placeholder="Operario">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Centro de Costo *</label>
+        <select class="form-select" id="trabObraSelect"></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalTrabForm')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveTrabajador()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ASIGNAR CENTRO A TRABAJADOR -->
+<div class="modal-bg" id="modalAsignarCentro">
+  <div class="modal" style="max-width:480px">
+    <button class="modal-close" onclick="closeModal('modalAsignarCentro')">✕</button>
+    <div class="modal-title">Centros de Costo</div>
+    <div class="modal-sub" id="modalAsignarCentroSub">Gestionar asignación del trabajador</div>
+    <input type="hidden" id="asignarTrabId">
+    <div class="form-group">
+      <label class="form-label">Asignar a centro de costo</label>
+      <div style="display:flex;gap:8px;">
+        <select class="form-select" id="asignarObraSelect" style="flex:1"></select>
+        <button class="btn btn-primary" onclick="asignarCentro()">+ Agregar</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Centros asignados</label>
+      <div id="centrosAsignadosList" class="chip-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalAsignarCentro')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: DETALLE ENTREGA (MEJORADO) -->
+<div class="modal-bg" id="modalEntregaDetalle">
+  <div class="modal" style="max-width:680px">
+    <button class="modal-close" onclick="closeModal('modalEntregaDetalle')">✕</button>
+    <div class="modal-title" id="modalDetalleTitulo">Detalle de Entrega</div>
+    <div class="modal-sub" id="modalDetalleSub"></div>
+    <div id="modalDetalleBody"></div>
+  </div>
+</div>
+
+<!-- MODAL: CREAR EPP EN CATÁLOGO -->
+<div class="modal-bg" id="modalNuevoEpp">
+  <div class="modal" style="max-width:500px">
+    <button class="modal-close" onclick="closeModal('modalNuevoEpp')">✕</button>
+    <div class="modal-title">Nuevo EPP en Catálogo</div>
+    <div class="modal-sub">Agrega un nuevo tipo de EPP al sistema</div>
+    <div class="form-error" id="eppFormError"></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Nombre *</label>
+        <input class="form-input" id="eppNombre" placeholder="Casco de seguridad">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Código *</label>
+        <input class="form-input" id="eppCodigo" placeholder="CASCO">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Categoría</label>
+        <input class="form-input" id="eppCategoria" placeholder="Protección cabeza">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Vida útil (días)</label>
+        <input class="form-input" type="number" id="eppVidaUtil" placeholder="365">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalNuevoEpp')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveNuevoEpp()">Crear EPP</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ENTRADA DE STOCK -->
+<div class="modal-bg" id="modalEntradaStock">
+  <div class="modal" style="max-width:500px">
+    <button class="modal-close" onclick="closeModal('modalEntradaStock')">✕</button>
+    <div class="modal-title">Registrar Entrada de Stock</div>
+    <div class="modal-sub">Ingreso de EPP a una bodega</div>
+    <div class="form-error" id="stockFormError"></div>
+    <div class="form-group">
+      <label class="form-label">Bodega *</label>
+      <select class="form-select" id="stockBodegaSelect"></select>
+    </div>
+    <div id="stockEntryRows"></div>
+    <button class="btn btn-secondary btn-sm" onclick="addStockRow()" style="margin-bottom:16px">+ Agregar EPP</button>
+    <div class="form-group">
+      <label class="form-label">Motivo</label>
+      <input class="form-input" id="stockMotivo" placeholder="Compra, donación, traslado...">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalEntradaStock')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEntradaStock()">Registrar Entrada</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ASIGNAR SUPERVISOR A CENTRO -->
+<div class="modal-bg" id="modalAsignarSupervisor">
+  <div class="modal" style="max-width:500px">
+    <button class="modal-close" onclick="closeModal('modalAsignarSupervisor')">✕</button>
+    <div class="modal-title" id="modalSupTitle">Gestionar Centro de Costo</div>
+    <div class="modal-sub" id="modalSupSub"></div>
+    <input type="hidden" id="modalSupObraId">
+    <div class="form-group">
+      <label class="form-label">Asignar Supervisor</label>
+      <div style="display:flex;gap:8px;">
+        <select class="form-select" id="supSelect" style="flex:1"></select>
+        <button class="btn btn-primary" onclick="asignarSupervisor()">+ Asignar</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Supervisores asignados</label>
+      <div id="supAsignadosList" class="chip-list"></div>
+    </div>
+    <div style="height:1px;background:var(--border);margin:16px 0;"></div>
+    <div class="form-group">
+      <label class="form-label">Asignar Trabajador</label>
+      <div style="display:flex;gap:8px;">
+        <select class="form-select" id="centroTrabSelect" style="flex:1"></select>
+        <button class="btn btn-primary" onclick="asignarTrabajadorACentro()">+ Asignar</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Trabajadores asignados</label>
+      <div id="centroTrabList" class="chip-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalAsignarSupervisor')">Cerrar</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
