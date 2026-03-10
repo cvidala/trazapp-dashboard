@@ -723,24 +723,8 @@ async function loadEntregas(obraId) {
 }
 
 async function loadStock(obraId) {
-  let q = sb.from('stock_actual')
-    .select('epp_id, bodega_id, cantidad_actual, catalogo_epp(nombre, codigo), bodegas(nombre)')
-    .order('cantidad_actual', { ascending: true })
-    .limit(20);
-
-  if (obraId) {
-    // Filtrar bodegas de esa obra
-    const { data: bods } = await sb.from('bodegas').select('bodega_id').eq('obra_id', obraId);
-    const ids = (bods || []).map(b => b.bodega_id);
-    if (ids.length) q = q.in('bodega_id', ids);
-  }
-
-  const { data, error } = await q;
-  if (error) {
-    // Fallback: stock_movimientos si no existe vista stock_actual
-    return loadStockFallback(obraId);
-  }
-  return data || [];
+  // Usar directamente stock_movimientos (vista stock_actual no existe)
+  return loadStockFallback(obraId);
 }
 
 async function loadStockFallback(obraId) {
