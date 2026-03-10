@@ -646,12 +646,7 @@ async function loadDashboard() {
 async function loadTrabajadores(obraId) {
   // Traer trabajadores con sus últimas entregas
   let q = sb.from('trabajador_obras')
-    .select(`
-      obra_id,
-      obras(nombre),
-      trabajadores(trabajador_id, nombre, rut, activo)
-    `)
-    .eq('trabajadores.activo', true);
+    .select('obra_id, obras(nombre), trabajadores(trabajador_id, nombre, rut)')
 
   if (obraId) q = q.eq('obra_id', obraId);
 
@@ -1063,7 +1058,7 @@ async function loadPageTrabajadores() {
   try {
     // 1) Traer todos los trabajador_obras con join
     const { data: rows, error } = await sb.from('trabajador_obras')
-      .select('obra_id, obras(nombre), trabajadores(trabajador_id, nombre, rut, activo)');
+      .select('obra_id, obras(nombre), trabajadores(trabajador_id, nombre, rut)');
 
     if (error) throw error;
 
@@ -1072,7 +1067,7 @@ async function loadPageTrabajadores() {
     const trabajadoresBase = [];
     for (const row of (rows || [])) {
       const t = row.trabajadores;
-      if (!t || !t.activo || seen.has(t.trabajador_id)) continue;
+      if (!t || seen.has(t.trabajador_id)) continue;
       seen.add(t.trabajador_id);
       trabajadoresBase.push({ id: t.trabajador_id, nombre: t.nombre, rut: t.rut, centro: row.obras?.nombre || '—', obraId: row.obra_id });
     }
