@@ -575,7 +575,7 @@
           <div class="table-wrap">
             <table class="full-table">
               <thead><tr>
-                <th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Creado</th><th>Acciones</th>
+                <th>Nombre</th><th>Rol</th><th>Estado</th><th>Creado</th><th>Acciones</th>
               </tr></thead>
               <tbody id="usuariosTable"><tr><td colspan="6" class="empty-state">Cargando...</td></tr></tbody>
             </table>
@@ -1129,7 +1129,7 @@ function refreshPage() { loadDashboard(); }
 
 // ── PAGE: TRABAJADORES ────────────────────────────────────────────
 async function loadPageTrabajadores() {
-  document.getElementById('trabTable').innerHTML = '<tr><td colspan="6" class="empty-state">Cargando...</td></tr>';
+  document.getElementById('trabTable').innerHTML = '<tr><td colspan="5" class="empty-state">Cargando...</td></tr>';
   showLoading(true);
   try {
     // 1) Traer todos los trabajador_obras con join
@@ -1376,7 +1376,7 @@ function filterStock() {
 
 // ── PAGE: ENTREGAS ────────────────────────────────────────────────
 async function loadPageEntregas() {
-  document.getElementById('entTable').innerHTML = '<tr><td colspan="6" class="empty-state">Cargando...</td></tr>';
+  document.getElementById('entTable').innerHTML = '<tr><td colspan="5" class="empty-state">Cargando...</td></tr>';
   showLoading(true);
   try {
     const { data } = await sb.from('entregas_epp')
@@ -1662,7 +1662,7 @@ async function openNuevoTrabajador() {
   document.getElementById('trabCargo').value = '';
   document.getElementById('trabFormError').style.display = 'none';
   document.getElementById('trabNombre').dataset.editId = '';
-  const { data: obras } = await sb.from('obras').select('obra_id, nombre').eq('activo', true);
+  const { data: obras } = await sb.from('obras').select('obra_id, nombre').eq('estado','ACTIVA');
   const sel = document.getElementById('trabObraSelect');
   sel.innerHTML = (obras||[]).map(o => `<option value="${o.obra_id}">${o.nombre}</option>`).join('');
   document.getElementById('modalTrabForm').classList.add('open');
@@ -1675,7 +1675,7 @@ async function openEditarTrabajador(id, nombre, rut, cargo) {
   document.getElementById('trabCargo').value = cargo || '';
   document.getElementById('trabFormError').style.display = 'none';
   document.getElementById('trabNombre').dataset.editId = id;
-  const { data: obras } = await sb.from('obras').select('obra_id, nombre').eq('activo', true);
+  const { data: obras } = await sb.from('obras').select('obra_id, nombre').eq('estado','ACTIVA');
   const sel = document.getElementById('trabObraSelect');
   sel.innerHTML = (obras||[]).map(o => `<option value="${o.obra_id}">${o.nombre}</option>`).join('');
   document.getElementById('modalTrabForm').classList.add('open');
@@ -1719,7 +1719,7 @@ async function openAsignarCentro(trabId, nombre) {
   document.getElementById('modalAsignarCentroSub').textContent = nombre;
   document.getElementById('centrosAsignadosList').innerHTML = 'Cargando...';
   const [{ data: obras }, { data: asignados }] = await Promise.all([
-    sb.from('obras').select('obra_id, nombre').eq('activo', true),
+    sb.from('obras').select('obra_id, nombre').eq('estado','ACTIVA'),
     sb.from('trabajador_obras').select('obra_id, obras(nombre)').eq('trabajador_id', trabId)
   ]);
   const asignadosSet = new Set((asignados||[]).map(a => a.obra_id));
@@ -1741,7 +1741,7 @@ async function asignarCentro() {
   await sb.from('trabajador_obras').upsert({ trabajador_id: trabId, obra_id: obraId });
   const [{ data: asignados }, { data: obras }] = await Promise.all([
     sb.from('trabajador_obras').select('obra_id, obras(nombre)').eq('trabajador_id', trabId),
-    sb.from('obras').select('obra_id, nombre').eq('activo', true)
+    sb.from('obras').select('obra_id, nombre').eq('estado','ACTIVA')
   ]);
   const asignadosSet = new Set((asignados||[]).map(a => a.obra_id));
   document.getElementById('asignarObraSelect').innerHTML = (obras||[]).filter(o => !asignadosSet.has(o.obra_id)).map(o => `<option value="${o.obra_id}">${o.nombre}</option>`).join('');
@@ -1839,8 +1839,8 @@ async function openGestionarCentro(obraId, obraNombre) {
   document.getElementById('centroTrabList').innerHTML = 'Cargando...';
 
   const [{ data: supervisores }, { data: supObra }, { data: trabajadores }, { data: trabObra }] = await Promise.all([
-    sb.from('perfiles').select('user_id, nombre, email').eq('rol', 'SUPERVISOR'),
-    sb.from('obra_usuarios').select('user_id, perfiles(nombre,email)').eq('obra_id', obraId).eq('rol_obra','SUPERVISOR'),
+    sb.from('perfiles').select('user_id, nombre').eq('rol', 'SUPERVISOR'),
+    sb.from('obra_usuarios').select('user_id, perfiles(nombre)').eq('obra_id', obraId).eq('rol_obra','SUPERVISOR'),
     sb.from('trabajadores').select('trabajador_id, nombre').eq('activo', true),
     sb.from('trabajador_obras').select('trabajador_id, trabajadores(nombre)').eq('obra_id', obraId)
   ]);
@@ -1859,7 +1859,7 @@ async function openGestionarCentro(obraId, obraNombre) {
 function renderSupAsignados(lista, obraId) {
   const el = document.getElementById('supAsignadosList');
   if (!lista.length) { el.innerHTML = '<span style="color:var(--muted);font-size:12px">Sin supervisores asignados</span>'; return; }
-  el.innerHTML = lista.map(p => `<span class="chip">${p.perfiles?.nombre||p.user_id}<span class="chip-remove" onclick="desasignarSupervisor('${obraId}','${p.user_id}')">×</span></span>`).join('');
+  el.innerHTML = lista.map(p => `<span class="chip">${p.perfiles?.nombre||'—'}<span class="chip-remove" onclick="desasignarSupervisor('${obraId}','${p.user_id}')">×</span></span>`).join('');
 }
 
 function renderTrabAsignados(lista, obraId) {
@@ -1874,8 +1874,8 @@ async function asignarSupervisor() {
   if (!userId) return;
   await sb.from('obra_usuarios').upsert({ obra_id: obraId, user_id: userId, rol_obra: 'SUPERVISOR' });
   const [{ data: supObra }, { data: todos }] = await Promise.all([
-    sb.from('obra_usuarios').select('user_id, perfiles(nombre,email)').eq('obra_id', obraId).eq('rol_obra','SUPERVISOR'),
-    sb.from('perfiles').select('user_id, nombre, email').eq('rol', 'SUPERVISOR')
+    sb.from('obra_usuarios').select('user_id, perfiles(nombre)').eq('obra_id', obraId).eq('rol_obra','SUPERVISOR'),
+    sb.from('perfiles').select('user_id, nombre').eq('rol', 'SUPERVISOR')
   ]);
   const set = new Set((supObra||[]).map(p => p.user_id));
   document.getElementById('supSelect').innerHTML = (todos||[]).filter(s => !set.has(s.user_id)).map(s => `<option value="${s.user_id}">${s.nombre||s.email}</option>`).join('') || '<option disabled>Sin supervisores disponibles</option>';
@@ -1884,7 +1884,7 @@ async function asignarSupervisor() {
 
 async function desasignarSupervisor(obraId, userId) {
   await sb.from('obra_usuarios').delete().eq('obra_id', obraId).eq('user_id', userId);
-  const { data } = await sb.from('obra_usuarios').select('user_id, perfiles(nombre,email)').eq('obra_id', obraId).eq('rol_obra','SUPERVISOR');
+  const { data } = await sb.from('obra_usuarios').select('user_id, perfiles(nombre)').eq('obra_id', obraId).eq('rol_obra','SUPERVISOR');
   renderSupAsignados(data||[], obraId);
 }
 
@@ -1914,8 +1914,8 @@ async function desasignarTrabajadorDeCentro(obraId, trabId) {
 // USUARIOS — CRUD (ADMIN ONLY)
 // ═══════════════════════════════════════════════════════
 async function loadPageUsuarios() {
-  document.getElementById('usuariosTable').innerHTML = '<tr><td colspan="6" class="empty-state">Cargando...</td></tr>';
-  const { data, error } = await sb.from('perfiles').select('user_id, nombre, email, rol, activo, created_at').order('created_at', { ascending: false });
+  document.getElementById('usuariosTable').innerHTML = '<tr><td colspan="5" class="empty-state">Cargando...</td></tr>';
+  const { data, error } = await sb.from('perfiles').select('user_id, nombre, rol, activo, created_at').order('created_at', { ascending: false });
   if (error) { document.getElementById('usuariosTable').innerHTML = `<tr><td colspan="6" class="empty-state">Error: ${error.message}</td></tr>`; return; }
 
   const rows = (data||[]).map(u => {
@@ -1925,7 +1925,6 @@ async function loadPageUsuarios() {
     const esSelf   = u.user_id === currentPerfil?.userId;
     return `<tr>
       <td><div class="worker-name">${u.nombre||'—'}${esSelf ? ' <span style="font-size:10px;color:var(--orange)">(tú)</span>' : ''}</div></td>
-      <td style="font-size:12px;color:var(--muted)">${u.email||'—'}</td>
       <td>${rolLabel}</td>
       <td>${estado}</td>
       <td style="font-size:12px;color:var(--muted)">${fecha}</td>
@@ -1943,7 +1942,7 @@ async function loadPageUsuarios() {
     </tr>`;
   }).join('');
 
-  document.getElementById('usuariosTable').innerHTML = rows || '<tr><td colspan="6" class="empty-state">Sin usuarios</td></tr>';
+  document.getElementById('usuariosTable').innerHTML = rows || '<tr><td colspan="5" class="empty-state">Sin usuarios</td></tr>';
 }
 
 async function openNuevoUsuario() {
@@ -1953,7 +1952,7 @@ async function openNuevoUsuario() {
   document.getElementById('usuarioFormError').style.display = 'none';
 
   // Load obras for assignment
-  const { data: obras } = await sb.from('obras').select('obra_id, nombre').eq('activo', true);
+  const { data: obras } = await sb.from('obras').select('obra_id, nombre').eq('estado','ACTIVA');
   const sel = document.getElementById('usuarioCentroSelect');
   sel.innerHTML = '<option value="">Sin asignación inicial</option>' + (obras||[]).map(o => `<option value="${o.obra_id}">${o.nombre}</option>`).join('');
 
@@ -1980,7 +1979,7 @@ async function saveNuevoUsuario() {
   const userId = signUpData?.user?.id;
   if (userId) {
     // Create perfil
-    await sb.from('perfiles').upsert({ user_id: userId, nombre, email, rol, org_id: currentPerfil.org_id, activo: true });
+    await sb.from('perfiles').upsert({ user_id: userId, nombre, rol, org_id: currentPerfil.org_id, activo: true });
     // Assign to centro if selected
     if (obraId) await sb.from('obra_usuarios').upsert({ user_id: userId, obra_id: obraId, rol_obra: rol });
   }
@@ -2249,7 +2248,7 @@ async function eliminarEpp(eppId, nombre) {
       <input class="form-input" id="usuarioNombre" placeholder="Juan Pérez">
     </div>
     <div class="form-group">
-      <label class="form-label">Email *</label>
+      <label class="form-label">Email * <span style="font-size:10px;color:var(--muted)">(para el acceso al sistema)</span></label>
       <input class="form-input" type="email" id="usuarioEmail" placeholder="juan@empresa.cl">
     </div>
     <div class="form-group">
