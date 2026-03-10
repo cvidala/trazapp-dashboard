@@ -152,6 +152,77 @@
   @keyframes spin{to{transform:rotate(360deg);}}
   .empty-state{text-align:center;padding:32px;color:var(--muted);font-size:13px;}
 
+
+  /* PAGES */
+  .page{display:none;}.page.active{display:block;}
+  .page-header{margin-bottom:24px;}
+  .page-title{font-size:22px;font-weight:700;color:var(--navy);letter-spacing:-0.3px;}
+  .page-sub{font-size:13px;color:var(--muted);margin-top:4px;}
+
+  /* SEARCH BAR */
+  .search-bar{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+  .search-input{flex:1;padding:10px 16px;border:1.5px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;color:var(--navy);outline:none;background:white;}
+  .search-input:focus{border-color:var(--orange);}
+  .search-select{padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;color:var(--navy);outline:none;background:white;cursor:pointer;}
+
+  /* FULL TABLE */
+  .full-table th{background:var(--bg);}
+  .full-table td{font-size:13px;}
+  .clickable-row{cursor:pointer;}
+  .clickable-row:hover td{background:#f5f7ff;}
+
+  /* MODAL */
+  .modal-bg{position:fixed;inset:0;background:rgba(13,33,72,0.5);z-index:200;display:none;align-items:center;justify-content:center;}
+  .modal-bg.open{display:flex;}
+  .modal{background:white;border-radius:20px;padding:32px;width:600px;max-width:95vw;max-height:85vh;overflow-y:auto;position:relative;}
+  .modal-title{font-size:18px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+  .modal-sub{font-size:12px;color:var(--muted);margin-bottom:24px;}
+  .modal-close{position:absolute;top:20px;right:20px;width:32px;height:32px;background:var(--bg);border:none;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+  .modal-section{margin-bottom:20px;}
+  .modal-section-title{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+  .detail-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f4f6fb;}
+  .detail-row:last-child{border-bottom:none;}
+  .detail-label{font-size:12px;color:var(--muted);font-weight:500;}
+  .detail-value{font-size:13px;font-weight:600;color:var(--navy);}
+
+  /* EPP LIST IN MODAL */
+  .epp-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border-radius:10px;margin-bottom:8px;}
+  .epp-item-name{font-size:13px;font-weight:600;color:var(--navy);flex:1;}
+  .epp-item-qty{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);}
+
+  /* STOCK PAGE */
+  .stock-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:20px;}
+  .stock-card{background:white;border-radius:16px;border:1px solid var(--border);padding:20px;transition:transform 0.15s,box-shadow 0.15s;}
+  .stock-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(13,33,72,0.08);}
+  .stock-card-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+  .stock-card-icon{width:44px;height:44px;background:var(--bg);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+  .stock-card-name{font-size:14px;font-weight:700;color:var(--navy);}
+  .stock-card-code{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+  .stock-bodegas{margin-top:8px;}
+  .stock-bodega-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f4f6fb;}
+  .stock-bodega-row:last-child{border-bottom:none;}
+  .stock-bodega-name{font-size:12px;color:var(--muted);}
+  .stock-bodega-qty{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;}
+  .stock-bodega-qty.low{color:var(--red)}.stock-bodega-qty.warn{color:var(--yellow)}.stock-bodega-qty.ok{color:var(--green)}
+
+  /* CENTROS PAGE */
+  .centro-card{background:white;border-radius:16px;border:1px solid var(--border);padding:24px;margin-bottom:16px;display:flex;align-items:center;gap:20px;transition:transform 0.15s,box-shadow 0.15s;}
+  .centro-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(13,33,72,0.08);}
+  .centro-icon{width:52px;height:52px;background:var(--navy);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
+  .centro-name{font-size:16px;font-weight:700;color:var(--navy);}
+  .centro-dir{font-size:12px;color:var(--muted);margin-top:3px;}
+  .centro-stats{margin-left:auto;display:flex;gap:24px;text-align:center;}
+  .centro-stat-num{font-size:20px;font-weight:700;color:var(--navy);font-family:'JetBrains Mono',monospace;}
+  .centro-stat-label{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;}
+  .centro-badge{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;}
+  .centro-badge.activa{background:#dcfce7;color:#15803d;}
+  .centro-badge.inactiva{background:#f3f4f6;color:#6b7280;}
+
+  /* TABS */
+  .tabs{display:flex;gap:4px;background:var(--bg);border-radius:12px;padding:4px;margin-bottom:20px;width:fit-content;}
+  .tab{padding:8px 18px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);transition:all 0.15s;}
+  .tab.active{background:white;color:var(--navy);box-shadow:0 1px 4px rgba(13,33,72,0.1);}
+
   @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
   .kpi-card{animation:fadeUp 0.4s ease both;}
   .kpi-card:nth-child(1){animation-delay:0.05s}.kpi-card:nth-child(2){animation-delay:0.1s}
@@ -201,18 +272,18 @@
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Principal</div>
-      <div class="nav-item active"><span class="nav-icon">📊</span> Resumen General</div>
-      <div class="nav-item"><span class="nav-icon">👷</span> Trabajadores</div>
-      <div class="nav-item"><span class="nav-icon">📦</span> Stock EPP</div>
-      <div class="nav-item"><span class="nav-icon">📋</span> Entregas</div>
+      <div class="nav-item active" data-page="resumen" onclick="navTo('resumen')"><span class="nav-icon">📊</span> Resumen General</div>
+      <div class="nav-item" data-page="trabajadores" onclick="navTo('trabajadores')"><span class="nav-icon">👷</span> Trabajadores</div>
+      <div class="nav-item" data-page="stock" onclick="navTo('stock')"><span class="nav-icon">📦</span> Stock EPP</div>
+      <div class="nav-item" data-page="entregas" onclick="navTo('entregas')"><span class="nav-icon">📋</span> Entregas</div>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Gestión</div>
-      <div class="nav-item">
+      <div class="nav-item" data-page="alertas" onclick="navTo('alertas')">
         <span class="nav-icon">⚠️</span> Alertas
         <span class="nav-badge" id="alertBadge" style="display:none">0</span>
       </div>
-      <div class="nav-item"><span class="nav-icon">🏗️</span> Centros de Costo</div>
+      <div class="nav-item" data-page="centros" onclick="navTo('centros')"><span class="nav-icon">🏗️</span> Centros de Costo</div>
     </div>
     <div class="sidebar-bottom">
       <div class="user-chip">
@@ -230,18 +301,20 @@
   <div class="main">
     <header class="topbar">
       <div>
-        <div class="topbar-title">Resumen General</div>
+        <div class="topbar-title" id="topbarTitle">Resumen General</div>
         <div class="topbar-sub" id="topbarSub">Cargando...</div>
       </div>
-      <div class="topbar-right">
+      <div class="topbar-right" id="topbarRight">
         <select class="centro-selector" id="centroSelect" onchange="onCentroChange()">
           <option value="all">Todos los centros de costo</option>
         </select>
-        <div class="btn-refresh" onclick="loadDashboard()" title="Actualizar">🔄</div>
+        <div class="btn-refresh" onclick="refreshPage()" title="Actualizar">🔄</div>
       </div>
     </header>
 
     <div class="content">
+      <!-- PAGE: RESUMEN -->
+      <div class="page active" id="page-resumen">
       <!-- KPIs -->
       <div class="kpi-grid">
         <div class="kpi-card green">
@@ -327,8 +400,125 @@
             <div class="empty-state">Cargando...</div>
           </div>
         </div>
+      </div><!-- /page-resumen -->
+
+      <!-- PAGE: TRABAJADORES -->
+      <div class="page" id="page-trabajadores">
+        <div class="page-header">
+          <div class="page-title">👷 Trabajadores</div>
+          <div class="page-sub">Listado completo de trabajadores activos</div>
+        </div>
+        <div class="search-bar">
+          <input class="search-input" id="trabSearch" placeholder="🔍 Buscar por nombre o RUT..." oninput="filterTrabajadores()">
+          <select class="search-select" id="trabCentroFilter" onchange="filterTrabajadores()">
+            <option value="all">Todos los centros</option>
+          </select>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table class="full-table">
+              <thead><tr>
+                <th>Trabajador</th><th>RUT</th><th>Centro de Costo</th>
+                <th>EPP Completo</th><th>Estado</th><th>Última entrega</th>
+              </tr></thead>
+              <tbody id="trabTable"><tr><td colspan="6" class="empty-state">Cargando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
       </div>
-    </div>
+
+      <!-- PAGE: STOCK -->
+      <div class="page" id="page-stock">
+        <div class="page-header">
+          <div class="page-title">📦 Stock EPP</div>
+          <div class="page-sub">Inventario por bodega y centro de costo</div>
+        </div>
+        <div class="search-bar">
+          <input class="search-input" id="stockSearch" placeholder="🔍 Buscar EPP..." oninput="filterStock()">
+          <select class="search-select" id="stockCentroFilter" onchange="filterStock()">
+            <option value="all">Todas las bodegas</option>
+          </select>
+        </div>
+        <div id="stockGrid" class="stock-grid">
+          <div class="empty-state">Cargando...</div>
+        </div>
+      </div>
+
+      <!-- PAGE: ENTREGAS -->
+      <div class="page" id="page-entregas">
+        <div class="page-header">
+          <div class="page-title">📋 Historial de Entregas</div>
+          <div class="page-sub">Todas las entregas EPP registradas</div>
+        </div>
+        <div class="search-bar">
+          <input class="search-input" id="entSearch" placeholder="🔍 Buscar por trabajador..." oninput="filterEntregas()">
+          <select class="search-select" id="entTipoFilter" onchange="filterEntregas()">
+            <option value="all">Todos los tipos</option>
+            <option value="online">🌐 Online</option>
+            <option value="offline">📴 Offline sync</option>
+            <option value="firma">✍️ Firma digital</option>
+          </select>
+          <select class="search-select" id="entCentroFilter" onchange="filterEntregas()">
+            <option value="all">Todos los centros</option>
+          </select>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table class="full-table">
+              <thead><tr>
+                <th>Fecha</th><th>Trabajador</th><th>Centro de Costo</th>
+                <th>EPP entregado</th><th>Tipo</th><th>Ver</th>
+              </tr></thead>
+              <tbody id="entTable"><tr><td colspan="6" class="empty-state">Cargando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: ALERTAS -->
+      <div class="page" id="page-alertas">
+        <div class="page-header">
+          <div class="page-title">⚠️ Alertas EPP</div>
+          <div class="page-sub">EPP vencidos, faltantes o por vencer</div>
+        </div>
+        <div class="tabs" id="alertasTabs">
+          <div class="tab active" onclick="filterAlertasTipo('all')">Todas</div>
+          <div class="tab" onclick="filterAlertasTipo('danger')">🚨 Críticas</div>
+          <div class="tab" onclick="filterAlertasTipo('warn')">⚠️ Advertencias</div>
+        </div>
+        <div id="alertasPageList"></div>
+      </div>
+
+      <!-- PAGE: CENTROS -->
+      <div class="page" id="page-centros">
+        <div class="page-header">
+          <div class="page-title">🏗️ Centros de Costo</div>
+          <div class="page-sub">Resumen operativo por centro</div>
+        </div>
+        <div id="centrosList"></div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app-shell -->
+
+<!-- MODAL DETALLE ENTREGA -->
+<div class="modal-bg" id="modalEntrega">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalEntrega')">✕</button>
+    <div class="modal-title" id="modalEntregaTitle">Detalle de Entrega</div>
+    <div class="modal-sub" id="modalEntregaSub"></div>
+    <div id="modalEntregaBody"></div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE TRABAJADOR -->
+<div class="modal-bg" id="modalTrabajador">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalTrabajador')">✕</button>
+    <div class="modal-title" id="modalTrabTitle">Detalle Trabajador</div>
+    <div class="modal-sub" id="modalTrabSub"></div>
+    <div id="modalTrabBody"></div>
   </div>
 </div>
 
@@ -812,6 +1002,454 @@ function showLoading(v) {
   }
   document.getElementById('loginScreen').style.display = 'flex';
 })();
+
+
+// ── STATE ─────────────────────────────────────────────────────────
+let currentPage = 'resumen';
+let allTrabajadores = [];
+let allStock = [];
+let allEntregas = [];
+let allAlertas = [];
+let allCentros = [];
+
+// ── NAVIGATION ────────────────────────────────────────────────────
+const PAGE_TITLES = {
+  resumen: 'Resumen General',
+  trabajadores: '👷 Trabajadores',
+  stock: '📦 Stock EPP',
+  entregas: '📋 Historial de Entregas',
+  alertas: '⚠️ Alertas EPP',
+  centros: '🏗️ Centros de Costo',
+};
+
+function navTo(page) {
+  // Update nav items
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === page);
+  });
+  // Show/hide pages
+  document.querySelectorAll('.page').forEach(el => {
+    el.classList.toggle('active', el.id === 'page-' + page);
+  });
+  // Update topbar
+  document.getElementById('topbarTitle').textContent = PAGE_TITLES[page] || page;
+  // Show/hide centro filter (only on resumen)
+  const right = document.getElementById('topbarRight');
+  right.style.display = page === 'resumen' ? 'flex' : 'flex';
+
+  currentPage = page;
+
+  // Lazy load page data
+  if (page === 'trabajadores' && allTrabajadores.length === 0) loadPageTrabajadores();
+  if (page === 'stock'        && allStock.length === 0)        loadPageStock();
+  if (page === 'entregas'     && allEntregas.length === 0)     loadPageEntregas();
+  if (page === 'alertas'      && allAlertas.length === 0)      loadPageAlertas();
+  if (page === 'centros'      && allCentros.length === 0)      loadPageCentros();
+
+  // Re-populate if switching back
+  if (page === 'trabajadores' && allTrabajadores.length > 0) renderTrabajadoresPage(allTrabajadores);
+  if (page === 'stock'        && allStock.length > 0)        renderStockPage(allStock);
+  if (page === 'entregas'     && allEntregas.length > 0)     renderEntregasPage(allEntregas);
+  if (page === 'alertas'      && allAlertas.length > 0)      renderAlertasPage(allAlertas);
+  if (page === 'centros'      && allCentros.length > 0)      renderCentrosPage(allCentros);
+}
+
+function refreshPage() { loadDashboard(); }
+
+// ── PAGE: TRABAJADORES ────────────────────────────────────────────
+async function loadPageTrabajadores() {
+  document.getElementById('trabTable').innerHTML = '<tr><td colspan="6" class="empty-state">Cargando...</td></tr>';
+  showLoading(true);
+  try {
+    const { data } = await sb.from('trabajador_obras')
+      .select('obra_id, obras(nombre), trabajadores(trabajador_id, nombre, rut, activo)')
+      .order('created_at');
+
+    const seen = new Set();
+    const result = [];
+    for (const row of (data || [])) {
+      const t = row.trabajadores;
+      if (!t || !t.activo || seen.has(t.trabajador_id)) continue;
+      seen.add(t.trabajador_id);
+
+      const { data: ult } = await sb.from('entregas_epp')
+        .select('created_at')
+        .eq('trabajador_id', t.trabajador_id)
+        .order('created_at', { ascending: false })
+        .limit(1).maybeSingle();
+
+      const { data: reglasObra } = await sb.from('obra_epp_reglas')
+        .select('epp_id').eq('obra_id', row.obra_id).limit(50);
+
+      const totalReq = (reglasObra || []).length;
+      const { data: entregados } = await sb.from('entregas_epp')
+        .select('items').eq('trabajador_id', t.trabajador_id)
+        .eq('obra_id', row.obra_id).order('created_at', { ascending: false }).limit(20);
+
+      const eppIds = new Set();
+      for (const e of (entregados || [])) for (const it of (e.items || [])) if (it.epp_id) eppIds.add(it.epp_id);
+      const pct = totalReq > 0 ? Math.min(Math.round((eppIds.size / totalReq) * 100), 100) : (eppIds.size > 0 ? 100 : 0);
+
+      result.push({ id: t.trabajador_id, nombre: t.nombre, rut: t.rut, centro: row.obras?.nombre || '—', obraId: row.obra_id, pct, ultimaEntrega: ult?.created_at || null });
+    }
+
+    allTrabajadores = result;
+    // Populate filter
+    const centros = [...new Set(result.map(t => t.centro))];
+    const sel = document.getElementById('trabCentroFilter');
+    sel.innerHTML = '<option value="all">Todos los centros</option>' + centros.map(c => `<option value="${c}">${c}</option>`).join('');
+
+    renderTrabajadoresPage(result);
+  } finally { showLoading(false); }
+}
+
+function renderTrabajadoresPage(data) {
+  const tbody = document.getElementById('trabTable');
+  if (!data.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Sin trabajadores</td></tr>'; return; }
+  tbody.innerHTML = data.map(t => {
+    const barClass = t.pct === 100 ? '' : t.pct >= 60 ? 'warn' : 'danger';
+    const [bc, bl] = t.pct === 100 ? ['ok','✅ Al día'] : t.pct >= 60 ? ['warn','⚠️ Parcial'] : ['danger','🚨 Crítico'];
+    return `<tr class="clickable-row" onclick="openTrabajadorModal('${t.id}','${t.obraId}','${t.nombre.replace(/'/g,"\'")}')">
+      <td><div class="worker-name">${t.nombre}</div></td>
+      <td><div class="worker-rut">${t.rut || '—'}</div></td>
+      <td style="color:var(--muted);font-size:12px;">${t.centro}</td>
+      <td><div style="display:flex;align-items:center;gap:8px;">
+        <div class="progress-wrap"><div class="progress-bar ${barClass}" style="width:${t.pct}%"></div></div>
+        <span style="font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--muted)">${t.pct}%</span>
+      </div></td>
+      <td><span class="badge ${bc}">${bl}</span></td>
+      <td style="font-size:12px;color:var(--muted);">${formatRelative(t.ultimaEntrega)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function filterTrabajadores() {
+  const q     = document.getElementById('trabSearch').value.toLowerCase();
+  const centro = document.getElementById('trabCentroFilter').value;
+  const filtered = allTrabajadores.filter(t =>
+    (!q || t.nombre.toLowerCase().includes(q) || (t.rut||'').toLowerCase().includes(q)) &&
+    (centro === 'all' || t.centro === centro)
+  );
+  renderTrabajadoresPage(filtered);
+}
+
+// ── MODAL TRABAJADOR ──────────────────────────────────────────────
+async function openTrabajadorModal(trabajadorId, obraId, nombre) {
+  document.getElementById('modalTrabTitle').textContent = nombre;
+  document.getElementById('modalTrabSub').textContent = 'Historial EPP';
+  document.getElementById('modalTrabBody').innerHTML = '<div class="empty-state">Cargando...</div>';
+  document.getElementById('modalTrabajador').classList.add('open');
+
+  const { data: entregas } = await sb.from('entregas_epp')
+    .select('event_id, items, created_at, validacion_tipo, evidencia_foto_url, firma_url, obras(nombre)')
+    .eq('trabajador_id', trabajadorId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  // Get catalogo for names
+  const { data: catalogo } = await sb.from('catalogo_epp').select('epp_id, nombre, codigo');
+  const catMap = {};
+  for (const c of (catalogo||[])) catMap[c.epp_id] = c;
+
+  const body = document.getElementById('modalTrabBody');
+  if (!entregas?.length) { body.innerHTML = '<div class="empty-state">Sin entregas registradas</div>'; return; }
+
+  body.innerHTML = `
+    <div class="modal-section">
+      <div class="modal-section-title">Últimas entregas</div>
+      ${entregas.map(e => {
+        const tipo = e.validacion_tipo === 'OFFLINE_SYNC' ? '📴 Offline' : e.validacion_tipo === 'FIRMA_DIGITAL' ? '✍️ Firma' : '🌐 Online';
+        const itemNames = (e.items||[]).map(it => catMap[it.epp_id]?.nombre || it.epp_id).join(', ');
+        return `<div class="epp-item">
+          <div style="font-size:20px;">📦</div>
+          <div style="flex:1">
+            <div class="epp-item-name">${itemNames || '—'}</div>
+            <div style="font-size:11px;color:var(--muted)">${formatRelative(e.created_at)} · ${e.obras?.nombre || '—'} · ${tipo}</div>
+          </div>
+          ${e.evidencia_foto_url ? `<a href="${e.evidencia_foto_url}" target="_blank" style="font-size:11px;color:var(--orange);font-weight:600;">📷 Ver</a>` : ''}
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// ── PAGE: STOCK ───────────────────────────────────────────────────
+async function loadPageStock() {
+  document.getElementById('stockGrid').innerHTML = '<div class="empty-state">Cargando...</div>';
+  showLoading(true);
+  try {
+    const { data: movs } = await sb.from('stock_movimientos')
+      .select('bodega_id, epp_id, tipo, cantidad, bodegas(nombre, obra_id, obras(nombre)), catalogo_epp(epp_id, nombre, codigo)');
+
+    // Agrupar por epp_id → bodega
+    const eppMap = {};
+    for (const m of (movs||[])) {
+      const eid = m.epp_id;
+      if (!eppMap[eid]) eppMap[eid] = { catalogo: m.catalogo_epp, bodegas: {} };
+      const bid = m.bodega_id;
+      if (!eppMap[eid].bodegas[bid]) eppMap[eid].bodegas[bid] = { nombre: m.bodegas?.nombre, obraNombre: m.bodegas?.obras?.nombre, qty: 0 };
+      eppMap[eid].bodegas[bid].qty += m.tipo === 'ENTRADA' ? m.cantidad : -m.cantidad;
+    }
+
+    allStock = Object.values(eppMap);
+
+    // Populate filter
+    const centros = [...new Set(Object.values(eppMap).flatMap(e => Object.values(e.bodegas).map(b => b.obraNombre)).filter(Boolean))];
+    const sel = document.getElementById('stockCentroFilter');
+    sel.innerHTML = '<option value="all">Todas las bodegas</option>' + centros.map(c => `<option value="${c}">${c}</option>`).join('');
+
+    renderStockPage(allStock);
+  } finally { showLoading(false); }
+}
+
+function renderStockPage(data) {
+  const eppIcons = { CASCO:'🪖', CHALECO:'🦺', LENTES:'🥽', GUANTES:'🧤', BOTAS:'👢', ARNÉS:'🪝', MASCARILLA:'😷' };
+  const cont = document.getElementById('stockGrid');
+  if (!data.length) { cont.innerHTML = '<div class="empty-state">Sin datos de stock</div>'; return; }
+  cont.innerHTML = data.map(e => {
+    const cat = e.catalogo || {};
+    const icon = eppIcons[(cat.codigo||'').toUpperCase()] || '📦';
+    const totalQty = Object.values(e.bodegas).reduce((s,b) => s+b.qty, 0);
+    const totalClass = totalQty <= 0 ? 'low' : totalQty <= 3 ? 'warn' : 'ok';
+    return `<div class="stock-card">
+      <div class="stock-card-header">
+        <div class="stock-card-icon">${icon}</div>
+        <div>
+          <div class="stock-card-name">${cat.nombre || '—'}</div>
+          <div class="stock-card-code">${cat.codigo || '—'} · Total: <span class="stock-bodega-qty ${totalClass}">${totalQty}</span></div>
+        </div>
+      </div>
+      <div class="stock-bodegas">
+        ${Object.values(e.bodegas).map(b => {
+          const qc = b.qty <= 0 ? 'low' : b.qty <= 3 ? 'warn' : 'ok';
+          return `<div class="stock-bodega-row">
+            <div class="stock-bodega-name">${b.nombre || '—'}</div>
+            <div class="stock-bodega-qty ${qc}">${b.qty}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterStock() {
+  const q      = document.getElementById('stockSearch').value.toLowerCase();
+  const centro = document.getElementById('stockCentroFilter').value;
+  const filtered = allStock.filter(e => {
+    const nombre = (e.catalogo?.nombre||'').toLowerCase();
+    const matchQ = !q || nombre.includes(q);
+    const matchC = centro === 'all' || Object.values(e.bodegas).some(b => b.obraNombre === centro);
+    return matchQ && matchC;
+  });
+  renderStockPage(filtered);
+}
+
+// ── PAGE: ENTREGAS ────────────────────────────────────────────────
+async function loadPageEntregas() {
+  document.getElementById('entTable').innerHTML = '<tr><td colspan="6" class="empty-state">Cargando...</td></tr>';
+  showLoading(true);
+  try {
+    const { data } = await sb.from('entregas_epp')
+      .select('event_id, trabajador_id, obra_id, items, validacion_tipo, created_at, evidencia_foto_url, firma_url, trabajadores(nombre,rut), obras(nombre)')
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    allEntregas = data || [];
+
+    const centros = [...new Set(allEntregas.map(e => e.obras?.nombre).filter(Boolean))];
+    const sel = document.getElementById('entCentroFilter');
+    sel.innerHTML = '<option value="all">Todos los centros</option>' + centros.map(c => `<option value="${c}">${c}</option>`).join('');
+
+    renderEntregasPage(allEntregas);
+  } finally { showLoading(false); }
+}
+
+function renderEntregasPage(data) {
+  const tbody = document.getElementById('entTable');
+  if (!data.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Sin entregas</td></tr>'; return; }
+
+  const tipoLabel = v => v === 'OFFLINE_SYNC' ? '<span class="badge pending">📴 Offline</span>' :
+                          v === 'FIRMA_DIGITAL' ? '<span class="badge ok">✍️ Firma</span>' :
+                          '<span class="badge" style="background:#eff2fb;color:var(--navy)">🌐 Online</span>';
+
+  tbody.innerHTML = data.map(e => {
+    const items = (e.items||[]).length;
+    return `<tr class="clickable-row" onclick="openEntregaModal('${e.event_id}')">
+      <td style="font-size:12px;font-family:'JetBrains Mono',monospace;">${new Date(e.created_at).toLocaleDateString('es-CL')} ${new Date(e.created_at).toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})}</td>
+      <td><div class="worker-name">${e.trabajadores?.nombre||'—'}</div><div class="worker-rut">${e.trabajadores?.rut||''}</div></td>
+      <td style="font-size:12px;color:var(--muted)">${e.obras?.nombre||'—'}</td>
+      <td style="font-size:12px;">${items} EPP</td>
+      <td>${tipoLabel(e.validacion_tipo)}</td>
+      <td><span style="font-size:12px;color:var(--orange);font-weight:600;cursor:pointer;">Ver →</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function filterEntregas() {
+  const q      = document.getElementById('entSearch').value.toLowerCase();
+  const tipo   = document.getElementById('entTipoFilter').value;
+  const centro = document.getElementById('entCentroFilter').value;
+  const filtered = allEntregas.filter(e => {
+    const nombre = (e.trabajadores?.nombre||'').toLowerCase();
+    const matchQ = !q || nombre.includes(q);
+    const matchT = tipo === 'all' ||
+      (tipo === 'offline' && e.validacion_tipo === 'OFFLINE_SYNC') ||
+      (tipo === 'firma'   && e.validacion_tipo === 'FIRMA_DIGITAL') ||
+      (tipo === 'online'  && !['OFFLINE_SYNC','FIRMA_DIGITAL'].includes(e.validacion_tipo));
+    const matchC = centro === 'all' || e.obras?.nombre === centro;
+    return matchQ && matchT && matchC;
+  });
+  renderEntregasPage(filtered);
+}
+
+async function openEntregaModal(eventId) {
+  document.getElementById('modalEntregaBody').innerHTML = '<div class="empty-state">Cargando...</div>';
+  document.getElementById('modalEntrega').classList.add('open');
+
+  const { data: e } = await sb.from('entregas_epp')
+    .select('*, trabajadores(nombre,rut), obras(nombre)')
+    .eq('event_id', eventId).maybeSingle();
+  if (!e) { document.getElementById('modalEntregaBody').innerHTML = '<div class="empty-state">No encontrado</div>'; return; }
+
+  const { data: catalogo } = await sb.from('catalogo_epp').select('epp_id, nombre, codigo');
+  const catMap = {};
+  for (const c of (catalogo||[])) catMap[c.epp_id] = c;
+
+  document.getElementById('modalEntregaTitle').textContent = `Entrega — ${e.trabajadores?.nombre||'—'}`;
+  document.getElementById('modalEntregaSub').textContent = `${e.obras?.nombre||'—'} · ${new Date(e.created_at).toLocaleString('es-CL')}`;
+
+  const tipo = e.validacion_tipo === 'OFFLINE_SYNC' ? '📴 Offline Sync' : e.validacion_tipo === 'FIRMA_DIGITAL' ? '✍️ Firma Digital' : '🌐 Online';
+
+  document.getElementById('modalEntregaBody').innerHTML = `
+    <div class="modal-section">
+      <div class="modal-section-title">Información general</div>
+      <div class="detail-row"><span class="detail-label">ID Evento</span><span class="detail-value" style="font-family:'JetBrains Mono',monospace;font-size:11px;">${e.event_id}</span></div>
+      <div class="detail-row"><span class="detail-label">Trabajador</span><span class="detail-value">${e.trabajadores?.nombre||'—'}</span></div>
+      <div class="detail-row"><span class="detail-label">RUT</span><span class="detail-value">${e.trabajadores?.rut||'—'}</span></div>
+      <div class="detail-row"><span class="detail-label">Centro de Costo</span><span class="detail-value">${e.obras?.nombre||'—'}</span></div>
+      <div class="detail-row"><span class="detail-label">Tipo validación</span><span class="detail-value">${tipo}</span></div>
+      <div class="detail-row"><span class="detail-label">Fecha</span><span class="detail-value">${new Date(e.created_at).toLocaleString('es-CL')}</span></div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title">EPP entregado</div>
+      ${(e.items||[]).map(it => {
+        const cat = catMap[it.epp_id] || {};
+        return `<div class="epp-item"><div style="font-size:20px">📦</div><div class="epp-item-name">${cat.nombre||it.epp_id}</div><div class="epp-item-qty">x${it.cantidad}</div></div>`;
+      }).join('') || '<div class="empty-state">Sin items</div>'}
+    </div>
+    ${e.evidencia_foto_url || e.firma_url ? `
+    <div class="modal-section">
+      <div class="modal-section-title">Evidencias</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        ${e.evidencia_foto_url ? `<a href="${e.evidencia_foto_url}" target="_blank"><img src="${e.evidencia_foto_url}" style="width:120px;height:90px;object-fit:cover;border-radius:10px;border:1px solid var(--border)"></a>` : ''}
+        ${e.firma_url ? `<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Firma</div><a href="${e.firma_url}" target="_blank"><img src="${e.firma_url}" style="width:120px;height:60px;object-fit:contain;border-radius:10px;border:1px solid var(--border);background:white;padding:4px"></a></div>` : ''}
+      </div>
+    </div>` : ''}`;
+}
+
+// ── PAGE: ALERTAS ─────────────────────────────────────────────────
+async function loadPageAlertas() {
+  document.getElementById('alertasPageList').innerHTML = '<div class="empty-state">Cargando...</div>';
+  showLoading(true);
+  try {
+    const { data } = await sb.from('entregas_epp')
+      .select('trabajador_id, obra_id, evaluacion, created_at, trabajadores(nombre,rut), obras(nombre)')
+      .not('evaluacion', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(300);
+
+    const seen = new Set();
+    const alertas = [];
+    for (const e of (data||[])) {
+      const key = `${e.trabajador_id}_${e.obra_id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const ev = e.evaluacion;
+      for (const p of (ev?.pendientes_criticos||[])) {
+        alertas.push({ tipo:'danger', nombre:e.trabajadores?.nombre||'—', rut:e.trabajadores?.rut||'', detalle:`${p.nombre||p.codigo} — ${p.estado==='FALTA'?'No entregado':p.estado==='VENCIDO'?'Vencido':p.estado}`, cc:e.obras?.nombre||'—' });
+      }
+      for (const p of (ev?.pendientes_no_criticos||[])) {
+        alertas.push({ tipo:'warn', nombre:e.trabajadores?.nombre||'—', rut:e.trabajadores?.rut||'', detalle:`${p.nombre||p.codigo} — ${p.estado==='FALTA'?'Faltante':`Vence en ${p.dias_restantes??'?'} días`}`, cc:e.obras?.nombre||'—' });
+      }
+    }
+    allAlertas = alertas;
+    renderAlertasPage(alertas);
+  } finally { showLoading(false); }
+}
+
+function renderAlertasPage(data) {
+  const cont = document.getElementById('alertasPageList');
+  if (!data.length) { cont.innerHTML = '<div class="card"><div class="card-body"><div class="empty-state">✅ Sin alertas activas</div></div></div>'; return; }
+  cont.innerHTML = `<div class="card"><div class="card-body">` +
+    data.map(a => `
+      <div class="alerta-item ${a.tipo}" style="margin-bottom:8px;">
+        <span class="alerta-icon">${a.tipo==='danger'?'🚨':'⚠️'}</span>
+        <div>
+          <div class="alerta-name">${a.nombre} <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">${a.rut}</span></div>
+          <div class="alerta-detail">${a.detalle}</div>
+        </div>
+        <div class="alerta-cc">${a.cc}</div>
+      </div>`).join('') +
+    `</div></div>`;
+}
+
+let alertasFiltroActivo = 'all';
+function filterAlertasTipo(tipo) {
+  alertasFiltroActivo = tipo;
+  document.querySelectorAll('#alertasTabs .tab').forEach((t,i) => t.classList.toggle('active', ['all','danger','warn'][i]===tipo));
+  const filtered = tipo === 'all' ? allAlertas : allAlertas.filter(a => a.tipo === tipo);
+  renderAlertasPage(filtered);
+}
+
+// ── PAGE: CENTROS DE COSTO ────────────────────────────────────────
+async function loadPageCentros() {
+  document.getElementById('centrosList').innerHTML = '<div class="empty-state">Cargando...</div>';
+  showLoading(true);
+  try {
+    const { data: obras } = await sb.from('obras')
+      .select('obra_id, nombre, direccion, estado, created_at')
+      .order('nombre');
+
+    const result = [];
+    for (const o of (obras||[])) {
+      const [{ count: trabajadoresCount }, { count: entregasCount }] = await Promise.all([
+        sb.from('trabajador_obras').select('*', { count:'exact', head:true }).eq('obra_id', o.obra_id),
+        sb.from('entregas_epp').select('*', { count:'exact', head:true }).eq('obra_id', o.obra_id),
+      ]);
+      result.push({ ...o, trabajadoresCount, entregasCount });
+    }
+
+    allCentros = result;
+    renderCentrosPage(result);
+  } finally { showLoading(false); }
+}
+
+function renderCentrosPage(data) {
+  const cont = document.getElementById('centrosList');
+  if (!data.length) { cont.innerHTML = '<div class="empty-state">Sin centros de costo</div>'; return; }
+  cont.innerHTML = data.map(o => `
+    <div class="centro-card">
+      <div class="centro-icon">🏗️</div>
+      <div>
+        <div class="centro-name">${o.nombre}</div>
+        <div class="centro-dir">${o.direccion||'Sin dirección registrada'}</div>
+        <div style="margin-top:8px"><span class="centro-badge ${o.estado==='ACTIVA'?'activa':'inactiva'}">${o.estado}</span></div>
+      </div>
+      <div class="centro-stats">
+        <div><div class="centro-stat-num">${o.trabajadoresCount||0}</div><div class="centro-stat-label">Trabajadores</div></div>
+        <div><div class="centro-stat-num">${o.entregasCount||0}</div><div class="centro-stat-label">Entregas</div></div>
+      </div>
+    </div>`).join('');
+}
+
+// ── MODALS ────────────────────────────────────────────────────────
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+// Close modal on background click
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-bg')) e.target.classList.remove('open');
+});
+
 </script>
 </body>
 </html>
