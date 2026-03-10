@@ -1304,12 +1304,14 @@ async function loadPageStock() {
   showLoading(true);
   try {
     const { data: movs, error } = await sb.from('stock_movimientos')
-      .select('bodega_id, epp_id, tipo, cantidad, bodegas(nombre, obra_id, obras(nombre)), catalogo_epp(epp_id, nombre, codigo)');
+      .select('bodega_id, epp_id, tipo, cantidad, bodegas(nombre, obra_id, obras(nombre)), catalogo_epp(epp_id, nombre, codigo, activo)');
     if (error) throw error;
+    // Filter out inactive EPPs client-side
+    const activoMovs = (movs || []).filter(m => m.catalogo_epp?.activo !== false);
 
     // Agrupar por epp_id → bodega
     const eppMap = {};
-    for (const m of (movs||[])) {
+    for (const m of activoMovs) {
       const eid = m.epp_id;
       if (!eppMap[eid]) eppMap[eid] = { eppId: eid, catalogo: m.catalogo_epp, bodegas: {} };
       const bid = m.bodega_id;
@@ -2069,9 +2071,9 @@ async function eliminarCentro(id, nombre) {
 // ═══════════════════════════════════════════════════════
 async function eliminarEpp(eppId, nombre) {
   if (!confirm(`¿Eliminar "${nombre}" del catálogo? El historial de entregas se conservará.`)) return;
-  // Soft delete — mark inactive
   const { error } = await sb.from('catalogo_epp').update({ activo: false }).eq('epp_id', eppId);
   if (error) { alert('Error: ' + error.message); return; }
+  allStock = [];
   await loadPageStock();
 }
 
@@ -2234,7 +2236,7 @@ async function eliminarEpp(eppId, nombre) {
       <div id="centroTrabList" class="chip-list"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modalAsignarSupervisor')">Cerrar</button>
+      <button class="btn btn-secondary" onclick="closeModal('modalAsignarSupervisor');allCentros=[];loadPageCentros();">Cerrar</button>
     </div>
   </div>
 </div>
