@@ -1061,45 +1061,84 @@ async function loadPageTrabajadores() {
   document.getElementById('trabTable').innerHTML = '<tr><td colspan="6" class="empty-state">Cargando...</td></tr>';
   showLoading(true);
   try {
-    const { data } = await sb.from('trabajador_obras')
-      .select('obra_id, obras(nombre), trabajadores(trabajador_id, nombre, rut, activo)')
-      .order('created_at');
+    // 1) Traer todos los trabajador_obras con join
+    const { data: rows, error } = await sb.from('trabajador_obras')
+      .select('obra_id, obras(nombre), trabajadores(trabajador_id, nombre, rut, activo)');
 
+    if (error) throw error;
+
+    // Deduplicar trabajadores activos
     const seen = new Set();
-    const result = [];
-    for (const row of (data || [])) {
+    const trabajadoresBase = [];
+    for (const row of (rows || [])) {
       const t = row.trabajadores;
       if (!t || !t.activo || seen.has(t.trabajador_id)) continue;
       seen.add(t.trabajador_id);
-
-      const { data: ult } = await sb.from('entregas_epp')
-        .select('created_at')
-        .eq('trabajador_id', t.trabajador_id)
-        .order('created_at', { ascending: false })
-        .limit(1).maybeSingle();
-
-      const { data: reglasObra } = await sb.from('obra_epp_reglas')
-        .select('epp_id').eq('obra_id', row.obra_id).limit(50);
-
-      const totalReq = (reglasObra || []).length;
-      const { data: entregados } = await sb.from('entregas_epp')
-        .select('items').eq('trabajador_id', t.trabajador_id)
-        .eq('obra_id', row.obra_id).order('created_at', { ascending: false }).limit(20);
-
-      const eppIds = new Set();
-      for (const e of (entregados || [])) for (const it of (e.items || [])) if (it.epp_id) eppIds.add(it.epp_id);
-      const pct = totalReq > 0 ? Math.min(Math.round((eppIds.size / totalReq) * 100), 100) : (eppIds.size > 0 ? 100 : 0);
-
-      result.push({ id: t.trabajador_id, nombre: t.nombre, rut: t.rut, centro: row.obras?.nombre || '—', obraId: row.obra_id, pct, ultimaEntrega: ult?.created_at || null });
+      trabajadoresBase.push({ id: t.trabajador_id, nombre: t.nombre, rut: t.rut, centro: row.obras?.nombre || '—', obraId: row.obra_id });
     }
 
+    if (!trabajadoresBase.length) { allTrabajadores = []; renderTrabajadoresPage([]); return; }
+
+    const trabIds = trabajadoresBase.map(t => t.id);
+
+    // 2) Una sola query para última entrega de todos
+    const { data: ultimasEntregas } = await sb.from('entregas_epp')
+      .select('trabajador_id, created_at')
+      .in('trabajador_id', trabIds)
+      .order('created_at', { ascending: false });
+
+    const ultimaMap = {};
+    for (const e of (ultimasEntregas || [])) {
+      if (!ultimaMap[e.trabajador_id]) ultimaMap[e.trabajador_id] = e.created_at;
+    }
+
+    // 3) Una sola query para todas las reglas por obra
+    const obraIds = [...new Set(trabajadoresBase.map(t => t.obraId))];
+    const { data: reglas } = await sb.from('obra_epp_reglas')
+      .select('obra_id, epp_id')
+      .in('obra_id', obraIds);
+
+    const reglasPorObra = {};
+    for (const r of (reglas || [])) {
+      if (!reglasPorObra[r.obra_id]) reglasPorObra[r.obra_id] = new Set();
+      reglasPorObra[r.obra_id].add(r.epp_id);
+    }
+
+    // 4) Una sola query para todas las entregas recientes
+    const { data: todasEntregas } = await sb.from('entregas_epp')
+      .select('trabajador_id, obra_id, items')
+      .in('trabajador_id', trabIds)
+      .order('created_at', { ascending: false })
+      .limit(500);
+
+    // Calcular EPP entregados por trabajador+obra
+    const eppPorTrab = {};
+    for (const e of (todasEntregas || [])) {
+      const key = `${e.trabajador_id}_${e.obra_id}`;
+      if (!eppPorTrab[key]) eppPorTrab[key] = new Set();
+      for (const it of (e.items || [])) if (it.epp_id) eppPorTrab[key].add(it.epp_id);
+    }
+
+    // 5) Construir resultado final
+    const result = trabajadoresBase.map(t => {
+      const key = `${t.id}_${t.obraId}`;
+      const requeridos = reglasPorObra[t.obraId]?.size || 0;
+      const entregados = eppPorTrab[key]?.size || 0;
+      const pct = requeridos > 0 ? Math.min(Math.round((entregados / requeridos) * 100), 100) : (entregados > 0 ? 100 : 0);
+      return { ...t, pct, ultimaEntrega: ultimaMap[t.id] || null };
+    });
+
     allTrabajadores = result;
-    // Populate filter
+
+    // Populate centro filter
     const centros = [...new Set(result.map(t => t.centro))];
     const sel = document.getElementById('trabCentroFilter');
     sel.innerHTML = '<option value="all">Todos los centros</option>' + centros.map(c => `<option value="${c}">${c}</option>`).join('');
 
     renderTrabajadoresPage(result);
+  } catch(e) {
+    console.error('loadPageTrabajadores error:', e);
+    document.getElementById('trabTable').innerHTML = `<tr><td colspan="6" class="empty-state">Error: ${e.message}</td></tr>`;
   } finally { showLoading(false); }
 }
 
@@ -1177,8 +1216,9 @@ async function loadPageStock() {
   document.getElementById('stockGrid').innerHTML = '<div class="empty-state">Cargando...</div>';
   showLoading(true);
   try {
-    const { data: movs } = await sb.from('stock_movimientos')
+    const { data: movs, error } = await sb.from('stock_movimientos')
       .select('bodega_id, epp_id, tipo, cantidad, bodegas(nombre, obra_id, obras(nombre)), catalogo_epp(epp_id, nombre, codigo)');
+    if (error) throw error;
 
     // Agrupar por epp_id → bodega
     const eppMap = {};
@@ -1198,6 +1238,9 @@ async function loadPageStock() {
     sel.innerHTML = '<option value="all">Todas las bodegas</option>' + centros.map(c => `<option value="${c}">${c}</option>`).join('');
 
     renderStockPage(allStock);
+  } catch(e) {
+    console.error('loadPageStock error:', e);
+    document.getElementById('stockGrid').innerHTML = `<div class="empty-state">Error: ${e.message}</div>`;
   } finally { showLoading(false); }
 }
 
@@ -1260,6 +1303,9 @@ async function loadPageEntregas() {
     sel.innerHTML = '<option value="all">Todos los centros</option>' + centros.map(c => `<option value="${c}">${c}</option>`).join('');
 
     renderEntregasPage(allEntregas);
+  } catch(e) {
+    console.error('loadPageEntregas error:', e);
+    document.getElementById('entTable').innerHTML = `<tr><td colspan="6" class="empty-state">Error: ${e.message}</td></tr>`;
   } finally { showLoading(false); }
 }
 
