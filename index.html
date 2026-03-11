@@ -351,9 +351,6 @@
         <div class="topbar-sub" id="topbarSub">Cargando...</div>
       </div>
       <div class="topbar-right" id="topbarRight">
-        <select class="centro-selector" id="centroSelect" onchange="onCentroChange()">
-          <option value="all">Todos los centros de costo</option>
-        </select>
         <div class="btn-refresh" onclick="refreshPage()" title="Actualizar">🔄</div>
       </div>
     </header>
@@ -686,25 +683,18 @@ async function initApp() {
   const { data: obras } = await sb.from('obras').select('obra_id, nombre').order('nombre');
   obrasAccesibles = obras || [];
 
-  const sel = document.getElementById('centroSelect');
-  obrasAccesibles.forEach(o => {
-    const opt = document.createElement('option');
-    opt.value = o.obra_id;
-    opt.textContent = o.nombre;
-    sel.appendChild(opt);
-  });
+
 
   await loadDashboard();
 }
 
 // ── FILTRO CENTRO ─────────────────────────────────────────────────
-function onCentroChange() { loadDashboard(); }
 
 // ── LOAD DASHBOARD ────────────────────────────────────────────────
 async function loadDashboard() {
   showLoading(true);
   try {
-    const obraId = document.getElementById('centroSelect').value;
+    const obraId = 'all';
     const filtroObra = obraId !== 'all' ? obraId : null;
 
     const [trabajadores, entregas, stock, alertas] = await Promise.all([
