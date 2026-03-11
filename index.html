@@ -1138,19 +1138,17 @@ async function loadPageTrabajadores() {
 
     if (error) throw error;
 
-    // Deduplicar trabajadores activos
-    const seen = new Set();
+    // Una fila por trabajador+centro (un trabajador puede aparecer en múltiples centros)
     const trabajadoresBase = [];
     for (const row of (rows || [])) {
       const t = row.trabajadores;
-      if (!t || seen.has(t.trabajador_id)) continue;
-      seen.add(t.trabajador_id);
+      if (!t) continue;
       trabajadoresBase.push({ id: t.trabajador_id, nombre: t.nombre, rut: t.rut, centro: row.obras?.nombre || '—', obraId: row.obra_id });
     }
 
     if (!trabajadoresBase.length) { allTrabajadores = []; renderTrabajadoresPage([]); return; }
 
-    const trabIds = trabajadoresBase.map(t => t.id);
+    const trabIds = [...new Set(trabajadoresBase.map(t => t.id))];
 
     // 2) Una sola query para última entrega de todos
     const { data: ultimasEntregas } = await sb.from('entregas_epp')
