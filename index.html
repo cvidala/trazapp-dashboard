@@ -351,7 +351,7 @@
         <div class="topbar-sub" id="topbarSub">Cargando...</div>
       </div>
       <div class="topbar-right" id="topbarRight">
-        <select class="centro-selector" id="centroSelect" onchange="onCentroChange()" style="display:none">
+        <select class="centro-selector" id="centroSelect" onchange="onCentroChange()">
           <option value="all">Todos los centros de costo</option>
         </select>
         <div class="btn-refresh" onclick="refreshPage()" title="Actualizar">🔄</div>
@@ -1109,7 +1109,7 @@ function navTo(page) {
   document.getElementById('topbarTitle').textContent = PAGE_TITLES[page] || page;
   // Show centroSelect only on resumen page
   const centroSel = document.getElementById('centroSelect');
-  if (centroSel) centroSel.style.display = page === 'resumen' ? '' : 'none';
+  if (centroSel) centroSel.style.display = page === 'resumen' ? 'block' : 'none';
 
   currentPage = page;
 
@@ -1344,7 +1344,9 @@ function renderStockPage(data) {
   cont.innerHTML = data.map(e => {
     const cat = e.catalogo || {};
     const icon = eppIcons[(cat.codigo||'').toUpperCase()] || '📦';
-    const totalQty = Object.values(e.bodegas).reduce((s,b) => s+b.qty, 0);
+    const selectedBodega = document.getElementById('stockCentroFilter')?.value || 'all';
+    const bodegasToShow = selectedBodega === 'all' ? Object.values(e.bodegas) : Object.values(e.bodegas).filter(b => b.nombre === selectedBodega);
+    const totalQty = bodegasToShow.reduce((s,b) => s+b.qty, 0);
     const totalClass = totalQty <= 0 ? 'low' : totalQty <= 3 ? 'warn' : 'ok';
     return `<div class="stock-card" style="position:relative">
       <div class="stock-card-header">
@@ -1356,13 +1358,10 @@ function renderStockPage(data) {
         <button class="btn btn-danger btn-sm" title="Eliminar EPP del catálogo" onclick="eliminarEpp('${e.eppId}','${(cat.nombre||'').replace(/'/g,"\'")}')">🗑️</button>
       </div>
       <div class="stock-bodegas">
-        ${Object.values(e.bodegas).map(b => {
-          const qc = b.qty <= 0 ? 'low' : b.qty <= 3 ? 'warn' : 'ok';
-          return `<div class="stock-bodega-row">
-            <div class="stock-bodega-name">${b.nombre || '—'}</div>
-            <div class="stock-bodega-qty ${qc}">${b.qty}</div>
-          </div>`;
-        }).join('')}
+        <div class="stock-bodega-row" style="justify-content:center;padding:8px 0;">
+          <div class="stock-bodega-name" style="font-size:13px;color:var(--muted)">Stock total en bodega seleccionada</div>
+          <div class="stock-bodega-qty ${totalClass}" style="font-size:22px;font-weight:800">${totalQty}</div>
+        </div>
       </div>
     </div>`;
   }).join('');
