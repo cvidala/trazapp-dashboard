@@ -351,6 +351,9 @@
         <div class="topbar-sub" id="topbarSub">Cargando...</div>
       </div>
       <div class="topbar-right" id="topbarRight">
+        <select class="centro-selector" id="centroSelect" onchange="onCentroChange()" style="display:none">
+          <option value="all">Todos los centros de costo</option>
+        </select>
         <div class="btn-refresh" onclick="refreshPage()" title="Actualizar">🔄</div>
       </div>
     </header>
@@ -683,6 +686,17 @@ async function initApp() {
   const { data: obras } = await sb.from('obras').select('obra_id, nombre').order('nombre');
   obrasAccesibles = obras || [];
 
+  const sel = document.getElementById('centroSelect');
+  if (sel) {
+    sel.innerHTML = '<option value="all">Todos los centros de costo</option>';
+    obrasAccesibles.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.obra_id;
+      opt.textContent = o.nombre;
+      sel.appendChild(opt);
+    });
+  }
+
 
 
   await loadDashboard();
@@ -694,7 +708,7 @@ async function initApp() {
 async function loadDashboard() {
   showLoading(true);
   try {
-    const obraId = 'all';
+    const obraId = document.getElementById('centroSelect')?.value || 'all';
     const filtroObra = obraId !== 'all' ? obraId : null;
 
     const [trabajadores, entregas, stock, alertas] = await Promise.all([
@@ -1093,9 +1107,9 @@ function navTo(page) {
   });
   // Update topbar
   document.getElementById('topbarTitle').textContent = PAGE_TITLES[page] || page;
-  // Show/hide centro filter (only on resumen)
-  const right = document.getElementById('topbarRight');
-  right.style.display = page === 'resumen' ? 'flex' : 'flex';
+  // Show centroSelect only on resumen page
+  const centroSel = document.getElementById('centroSelect');
+  if (centroSel) centroSel.style.display = page === 'resumen' ? '' : 'none';
 
   currentPage = page;
 
@@ -1115,6 +1129,7 @@ function navTo(page) {
   if (page === 'usuarios')    loadPageUsuarios();
 }
 
+function onCentroChange() { loadDashboard(); }
 function refreshPage() { loadDashboard(); }
 
 // ── PAGE: TRABAJADORES ────────────────────────────────────────────
@@ -1309,10 +1324,10 @@ async function loadPageStock() {
 
     allStock = Object.values(eppMap);
 
-    // Populate filter
-    const centros = [...new Set(Object.values(eppMap).flatMap(e => Object.values(e.bodegas).map(b => b.obraNombre)).filter(Boolean))];
+    // Populate filter from obras directly (show all centros even if no stock)
+    const { data: obrasStock } = await sb.from('obras').select('nombre').eq('estado','ACTIVA').order('nombre');
     const sel = document.getElementById('stockCentroFilter');
-    sel.innerHTML = '<option value="all">Todas las bodegas</option>' + centros.map(c => `<option value="${c}">${c}</option>`).join('');
+    sel.innerHTML = '<option value="all">Todas las bodegas</option>' + (obrasStock||[]).map(o => `<option value="${o.nombre}">${o.nombre}</option>`).join('');
 
     renderStockPage(allStock);
   } catch(e) {
@@ -1376,9 +1391,10 @@ async function loadPageEntregas() {
 
     allEntregas = data || [];
 
-    const centros = [...new Set(allEntregas.map(e => e.obras?.nombre).filter(Boolean))];
+    // Load all centros from obras (show all even without entregas)
+    const { data: obrasEnt } = await sb.from('obras').select('nombre').eq('estado','ACTIVA').order('nombre');
     const sel = document.getElementById('entCentroFilter');
-    sel.innerHTML = '<option value="all">Todos los centros</option>' + centros.map(c => `<option value="${c}">${c}</option>`).join('');
+    sel.innerHTML = '<option value="all">Todos los centros</option>' + (obrasEnt||[]).map(o => `<option value="${o.nombre}">${o.nombre}</option>`).join('');
 
     renderEntregasPage(allEntregas);
   } catch(e) {
