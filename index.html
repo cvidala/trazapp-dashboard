@@ -1984,10 +1984,27 @@ async function saveNuevoUsuario() {
     options: { data: { nombre, rol } }
   });
 
-  if (signUpErr) { errEl.textContent = signUpErr.message; errEl.style.display='block'; return; }
+  let userId = signUpData?.user?.id;
 
-  const userId = signUpData?.user?.id;
-  if (!userId) { errEl.textContent = 'No se pudo crear el usuario. Intenta de nuevo.'; errEl.style.display='block'; return; }
+  // If "User already registered" — user exists in auth but may lack a perfil
+  if (signUpErr && signUpErr.message.includes('already registered')) {
+    // Try to find existing user by signing in temporarily
+    const { data: signInData, error: signInErr } = await sb.auth.signInWithPassword({ email, password });
+    if (signInErr) {
+      errEl.textContent = 'El email ya está registrado con otra contraseña. Usa la contraseña existente o contacta al administrador.';
+      errEl.style.display = 'block';
+      return;
+    }
+    userId = signInData?.user?.id;
+    // Re-authenticate as admin
+    await sb.auth.signInWithPassword({ email: currentPerfil._email || '', password: '' });
+  } else if (signUpErr) {
+    errEl.textContent = signUpErr.message;
+    errEl.style.display = 'block';
+    return;
+  }
+
+  if (!userId) { errEl.textContent = 'No se pudo obtener el ID del usuario.'; errEl.style.display='block'; return; }
 
   // Create perfil via SECURITY DEFINER function (bypasses RLS safely)
   const { error: perfilErr } = await sb.rpc('crear_perfil_usuario', {
@@ -1996,7 +2013,7 @@ async function saveNuevoUsuario() {
     p_rol:     rol,
     p_org_id:  currentPerfil.org_id
   });
-  if (perfilErr) { errEl.textContent = 'Usuario creado pero error en perfil: ' + perfilErr.message; errEl.style.display='block'; return; }
+  if (perfilErr) { errEl.textContent = 'Error creando perfil: ' + perfilErr.message; errEl.style.display='block'; return; }
 
   // Assign to centro if selected
   if (obraId) await sb.from('obra_usuarios').upsert({ user_id: userId, obra_id: obraId, rol_obra: rol });
