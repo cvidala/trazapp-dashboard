@@ -1953,6 +1953,7 @@ async function loadPageUsuarios() {
 async function openNuevoUsuario() {
   document.getElementById('usuarioNombre').value = '';
   document.getElementById('usuarioEmail').value = '';
+  document.getElementById('usuarioPassword').value = '';
   document.getElementById('usuarioRol').value = 'SUPERVISOR';
   document.getElementById('usuarioFormError').style.display = 'none';
 
@@ -1965,31 +1966,44 @@ async function openNuevoUsuario() {
 }
 
 async function saveNuevoUsuario() {
-  const nombre  = document.getElementById('usuarioNombre').value.trim();
-  const email   = document.getElementById('usuarioEmail').value.trim().toLowerCase();
-  const rol     = document.getElementById('usuarioRol').value;
-  const obraId  = document.getElementById('usuarioCentroSelect').value;
-  const errEl   = document.getElementById('usuarioFormError');
+  const nombre    = document.getElementById('usuarioNombre').value.trim();
+  const email     = document.getElementById('usuarioEmail').value.trim().toLowerCase();
+  const rol       = document.getElementById('usuarioRol').value;
+  const obraId    = document.getElementById('usuarioCentroSelect').value;
+  const password  = document.getElementById('usuarioPassword').value.trim();
+  const errEl     = document.getElementById('usuarioFormError');
 
-  if (!nombre || !email) { errEl.textContent = 'Nombre y email son obligatorios'; errEl.style.display='block'; return; }
+  if (!nombre || !email || !password) { errEl.textContent = 'Nombre, email y contraseña son obligatorios'; errEl.style.display='block'; return; }
+  if (password.length < 8) { errEl.textContent = 'La contraseña debe tener al menos 8 caracteres'; errEl.style.display='block'; return; }
   errEl.style.display = 'none';
 
-  // Invite user via Supabase Admin (uses service role — here we use signUp with redirect)
-  const { data: signUpData, error: signUpErr } = await sb.auth.admin ? 
-    sb.auth.admin.inviteUserByEmail(email) :
-    sb.auth.signUp({ email, password: Math.random().toString(36).slice(-12) + 'A1!', options: { data: { nombre, rol } } });
+  // Sign up the new user (creates auth.users entry)
+  const { data: signUpData, error: signUpErr } = await sb.auth.signUp({
+    email,
+    password,
+    options: { data: { nombre, rol } }
+  });
 
   if (signUpErr) { errEl.textContent = signUpErr.message; errEl.style.display='block'; return; }
 
   const userId = signUpData?.user?.id;
-  if (userId) {
-    // Create perfil
-    await sb.from('perfiles').upsert({ user_id: userId, nombre, rol, org_id: currentPerfil.org_id, activo: true });
-    // Assign to centro if selected
-    if (obraId) await sb.from('obra_usuarios').upsert({ user_id: userId, obra_id: obraId, rol_obra: rol });
-  }
+  if (!userId) { errEl.textContent = 'No se pudo crear el usuario. Intenta de nuevo.'; errEl.style.display='block'; return; }
+
+  // Create perfil record
+  const { error: perfilErr } = await sb.from('perfiles').upsert({ 
+    user_id: userId, nombre, rol, org_id: currentPerfil.org_id, activo: true 
+  });
+  if (perfilErr) { errEl.textContent = 'Usuario creado pero error en perfil: ' + perfilErr.message; errEl.style.display='block'; return; }
+
+  // Assign to centro if selected
+  if (obraId) await sb.from('obra_usuarios').upsert({ user_id: userId, obra_id: obraId, rol_obra: rol });
 
   closeModal('modalNuevoUsuario');
+  alert(`✅ Usuario creado.
+Email: ${email}
+Contraseña temporal: ${password}
+
+Comparte estas credenciales con el usuario para que pueda ingresar y cambiar su contraseña.`);
   await loadPageUsuarios();
 }
 
@@ -2246,15 +2260,20 @@ async function eliminarEpp(eppId, nombre) {
   <div class="modal" style="max-width:500px">
     <button class="modal-close" onclick="closeModal('modalNuevoUsuario')">✕</button>
     <div class="modal-title" id="modalUsuarioTitle">Nuevo Usuario</div>
-    <div class="modal-sub">Se enviará una invitación al email ingresado</div>
+    <div class="modal-sub">El usuario podrá acceder con el email y contraseña temporal que definas</div>
     <div class="form-error" id="usuarioFormError"></div>
     <div class="form-group">
       <label class="form-label">Nombre *</label>
       <input class="form-input" id="usuarioNombre" placeholder="Juan Pérez">
     </div>
     <div class="form-group">
-      <label class="form-label">Email * <span style="font-size:10px;color:var(--muted)">(para el acceso al sistema)</span></label>
+      <label class="form-label">Email *</label>
       <input class="form-input" type="email" id="usuarioEmail" placeholder="juan@empresa.cl">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Contraseña temporal *</label>
+      <input class="form-input" type="text" id="usuarioPassword" placeholder="Mínimo 8 caracteres">
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Compártela con el usuario para su primer acceso</div>
     </div>
     <div class="form-group">
       <label class="form-label">Rol *</label>
