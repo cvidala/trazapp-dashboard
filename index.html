@@ -1324,10 +1324,11 @@ async function loadPageStock() {
 
     allStock = Object.values(eppMap);
 
-    // Populate filter from obras directly (show all centros even if no stock)
-    const { data: obrasStock } = await sb.from('obras').select('nombre').eq('estado','ACTIVA').order('nombre');
+    // Populate filter from bodegas table
+    const { data: todasBodegas } = await sb.from('bodegas').select('nombre').order('nombre');
     const sel = document.getElementById('stockCentroFilter');
-    sel.innerHTML = '<option value="all">Todas las bodegas</option>' + (obrasStock||[]).map(o => `<option value="${o.nombre}">${o.nombre}</option>`).join('');
+    const bodegasUnicas = [...new Set((todasBodegas||[]).map(b => b.nombre))];
+    sel.innerHTML = '<option value="all">Todas las bodegas</option>' + bodegasUnicas.map(n => `<option value="${n}">${n}</option>`).join('');
 
     renderStockPage(allStock);
   } catch(e) {
@@ -1373,7 +1374,7 @@ function filterStock() {
   const filtered = allStock.filter(e => {
     const nombre = (e.catalogo?.nombre||'').toLowerCase();
     const matchQ = !q || nombre.includes(q);
-    const matchC = centro === 'all' || Object.values(e.bodegas).some(b => b.obraNombre === centro);
+    const matchC = centro === 'all' || Object.values(e.bodegas).some(b => b.nombre === centro);
     return matchQ && matchC;
   });
   renderStockPage(filtered);
