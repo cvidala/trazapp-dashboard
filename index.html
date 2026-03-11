@@ -1201,10 +1201,10 @@ async function loadPageTrabajadores() {
 
     allTrabajadores = result;
 
-    // Populate centro filter
-    const centros = [...new Set(result.map(t => t.centro))];
+    // Populate centro filter from obras directly (not from trabajadores, to include all centros)
+    const { data: todasObras } = await sb.from('obras').select('nombre').eq('estado','ACTIVA').order('nombre');
     const sel = document.getElementById('trabCentroFilter');
-    sel.innerHTML = '<option value="all">Todos los centros</option>' + centros.map(c => `<option value="${c}">${c}</option>`).join('');
+    sel.innerHTML = '<option value="all">Todos los centros</option>' + (todasObras||[]).map(o => `<option value="${o.nombre}">${o.nombre}</option>`).join('');
 
     renderTrabajadoresPage(result);
   } catch(e) {
@@ -1720,6 +1720,8 @@ async function reactivarTrabajador(id, nombre) {
 }
 
 async function openAsignarCentro(trabId, nombre) {
+  // Close trabajador modal if open
+  closeModal('modalTrabajador');
   document.getElementById('asignarTrabId').value = trabId;
   document.getElementById('modalAsignarCentroSub').textContent = nombre;
   document.getElementById('centrosAsignadosList').innerHTML = 'Cargando...';
