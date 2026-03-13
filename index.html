@@ -2664,8 +2664,561 @@ function exportReporteCSV() {
   link.click();
 }
 
-function exportReportePDF() {
-  window.print();
+// ═══════════════════════════════════════════════════════════════════
+// PDF EXPORT — Generador nativo sin dependencias
+// Construye un PDF real usando Canvas + Blob, con estilo TrazApp
+// ═══════════════════════════════════════════════════════════════════
+
+async function exportReportePDF() {
+  if (!reporteData || !reporteData.length) {
+    alert('Genera un reporte primero antes de exportar.'); return;
+  }
+
+  const tipoLabels = {
+    cumplimiento: 'Cumplimiento EPP por Trabajador',
+    entregas:     'Historial de Entregas',
+    stock:        'Stock y Movimientos de Bodega',
+    vencimientos: 'Vencimientos y Alertas EPP',
+  };
+
+  // ── Leer datos de la tabla DOM ──────────────────────────────────
+  const headers = [...document.querySelectorAll('#reporteTableHead th')].map(th => th.textContent.trim());
+  const rows    = [...document.querySelectorAll('#reporteTableBody tr')].map(tr =>
+    [...tr.querySelectorAll('td')].map(td =>
+      td.textContent.trim().replace(/[^\x00-\x7FáéíóúüñÁÉÍÓÚÜÑ%.,:\-/+ ]/g, '').trim()
+    )
+  ).filter(r => r.some(c => c));
+
+  const kpis = [...document.querySelectorAll('.reporte-kpi')].map(el => ({
+    num:   el.querySelector('.reporte-kpi-num')?.textContent.trim() || '',
+    label: el.querySelector('.reporte-kpi-label')?.textContent.replace(/[^\x00-\x7FáéíóúüñÁÉÍÓÚÜÑ%.,:\- ]/g, '').trim() || '',
+  }));
+
+  const titulo      = tipoLabels[reporteTipo] || 'Reporte';
+  const centroText  = document.getElementById('rfCentro').options[document.getElementById('rfCentro').selectedIndex]?.text || 'Todos';
+  const desde       = document.getElementById('rfDesde').value;
+  const hasta       = document.getElementById('rfHasta').value;
+  const fechaGen    = new Date().toLocaleString('es-CL', { dateStyle: 'long', timeStyle: 'short' });
+
+  // ── Capturar gráfico ────────────────────────────────────────────
+  let chartDataURL = null;
+  try {
+    const chartCanvas = document.getElementById('reporteChart');
+    if (chartCanvas && reporteChartInstance) chartDataURL = chartCanvas.toDataURL('image/png');
+  } catch(e) {}
+
+  // ── Canvas setup ────────────────────────────────────────────────
+  const PAGE_W  = 1122; // A4 landscape @ 96dpi-ish
+  const PAGE_H  = 794;
+  const MARGIN  = 40;
+  const COL_W   = (PAGE_W - MARGIN * 2) / Math.max(headers.length, 1);
+  const ROW_H   = 28;
+  const HDR_H   = 80;
+  const KPI_H   = 90;
+  const CHART_H = chartDataURL ? 220 : 0;
+
+  // Calculate total height needed
+  const tableH   = ROW_H * (rows.length + 1); // +1 header
+  const totalH   = HDR_H + KPI_H + CHART_H + tableH + 60;
+  const numPages = Math.ceil(totalH / PAGE_H);
+
+  // ── Draw all pages on a tall canvas then slice ──────────────────
+  const canvas  = document.createElement('canvas');
+  canvas.width  = PAGE_W;
+  canvas.height = totalH;
+  const ctx     = canvas.getContext('2d');
+
+  // Colors
+  const NAVY   = '#0D2148';
+  const ORANGE = '#E87722';
+  const BG     = '#F0F3FA';
+  const WHITE  = '#FFFFFF';
+  const MUTED  = '#8892a0';
+  const GREEN  = '#16a34a';
+  const AMBER  = '#d97706';
+  const RED    = '#dc2626';
+  const BORDER = '#dce3ef';
+
+  let y = 0;
+
+  // ── HEADER ──────────────────────────────────────────────────────
+  // Navy background
+  ctx.fillStyle = NAVY;
+  ctx.fillRect(0, y, PAGE_W, HDR_H);
+
+  // Orange left accent
+  ctx.fillStyle = ORANGE;
+  ctx.fillRect(0, y, 8, HDR_H);
+
+  // TrazApp wordmark
+  ctx.fillStyle = ORANGE;
+  ctx.font = 'bold 28px Arial';
+  ctx.fillText('TrazApp', 22, y + 32);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.font = '11px Arial';
+  ctx.fillText('EPP DASHBOARD', 22, y + 50);
+
+  // Report title centered
+  ctx.fillStyle = WHITE;
+  ctx.font = 'bold 20px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText(titulo, PAGE_W / 2, y + 30);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.font = '11px Arial';
+  ctx.fillText(`Generado: ${fechaGen}`, PAGE_W / 2, y + 48);
+  ctx.fillText(`Centro: ${centroText}   |   Período: ${desde} al ${hasta}`, PAGE_W / 2, y + 63);
+
+  ctx.textAlign = 'left';
+  y += HDR_H;
+
+  // ── KPI BOXES ──────────────────────────────────────────────────
+  if (kpis.length) {
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, y, PAGE_W, KPI_H);
+
+    const kW = (PAGE_W - MARGIN * 2 - (kpis.length - 1) * 12) / kpis.length;
+    kpis.forEach((kpi, i) => {
+      const x = MARGIN + i * (kW + 12);
+      // Card background
+      ctx.fillStyle = WHITE;
+      roundRect(ctx, x, y + 14, kW, KPI_H - 28, 10);
+      ctx.fill();
+      // Shadow
+      ctx.shadowColor = 'rgba(13,33,72,0.08)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetY = 2;
+      ctx.fillStyle = WHITE;
+      roundRect(ctx, x, y + 14, kW, KPI_H - 28, 10);
+      ctx.fill();
+      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+
+      // Number - pick color by index
+      const numColors = [NAVY, ORANGE, GREEN, RED];
+      ctx.fillStyle = numColors[i % numColors.length];
+      ctx.font = 'bold 26px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(kpi.num, x + kW / 2, y + 46);
+
+      ctx.fillStyle = MUTED;
+      ctx.font = '10px Arial';
+      ctx.fillText(kpi.label.toUpperCase().slice(0, 22), x + kW / 2, y + 62);
+      ctx.textAlign = 'left';
+    });
+  }
+  y += KPI_H;
+
+  // ── CHART ───────────────────────────────────────────────────────
+  if (chartDataURL) {
+    ctx.fillStyle = WHITE;
+    ctx.fillRect(MARGIN, y + 10, PAGE_W - MARGIN * 2, CHART_H - 20);
+    const img = await loadImage(chartDataURL);
+    const chartW = Math.min(PAGE_W - MARGIN * 2, 600);
+    ctx.drawImage(img, MARGIN + 10, y + 16, chartW - 20, CHART_H - 32);
+    // Border
+    ctx.strokeStyle = BORDER;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(MARGIN, y + 10, PAGE_W - MARGIN * 2, CHART_H - 20);
+    y += CHART_H;
+  }
+
+  // ── TABLE ───────────────────────────────────────────────────────
+  // Header row
+  ctx.fillStyle = NAVY;
+  ctx.fillRect(MARGIN, y, PAGE_W - MARGIN * 2, ROW_H);
+  ctx.fillStyle = WHITE;
+  ctx.font = 'bold 11px Arial';
+  const colW = (PAGE_W - MARGIN * 2) / headers.length;
+  headers.forEach((h, i) => {
+    ctx.fillText(truncate(h, 18), MARGIN + i * colW + 8, y + 19);
+  });
+  y += ROW_H;
+
+  // Data rows
+  rows.forEach((row, ri) => {
+    const rowBg = ri % 2 === 0 ? WHITE : BG;
+    ctx.fillStyle = rowBg;
+    ctx.fillRect(MARGIN, y, PAGE_W - MARGIN * 2, ROW_H);
+
+    // Bottom border
+    ctx.fillStyle = BORDER;
+    ctx.fillRect(MARGIN, y + ROW_H - 1, PAGE_W - MARGIN * 2, 1);
+
+    row.forEach((cell, ci) => {
+      // Color special values
+      const lower = cell.toLowerCase();
+      if (lower.includes('al dia') || lower.includes('al día') || lower === '100%') ctx.fillStyle = GREEN;
+      else if (lower.includes('critico') || lower.includes('crítico') || lower.includes('vencido')) ctx.fillStyle = RED;
+      else if (lower.includes('parcial') || lower.includes('dias') || lower.includes('días')) ctx.fillStyle = AMBER;
+      else ctx.fillStyle = NAVY;
+
+      ctx.font = '10px Arial';
+      ctx.fillText(truncate(cell, 22), MARGIN + ci * colW + 8, y + 18);
+    });
+    y += ROW_H;
+  });
+
+  // ── FOOTER LINE ─────────────────────────────────────────────────
+  y += 10;
+  ctx.fillStyle = NAVY;
+  ctx.fillRect(0, y, PAGE_W, 32);
+  ctx.fillStyle = ORANGE;
+  ctx.fillRect(0, y, 8, 32);
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.font = '10px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('TrazApp — Sistema de Gestión de EPP — Documento generado automáticamente', PAGE_W / 2, y + 20);
+  ctx.textAlign = 'left';
+
+  // ── SLICE INTO PAGES AND BUILD PDF ─────────────────────────────
+  const pageCanvases = [];
+  const fullH = y + 32;
+
+  for (let p = 0; p < Math.ceil(fullH / PAGE_H); p++) {
+    const pc = document.createElement('canvas');
+    pc.width = PAGE_W;
+    pc.height = PAGE_H;
+    const pctx = pc.getContext('2d');
+    pctx.fillStyle = WHITE;
+    pctx.fillRect(0, 0, PAGE_W, PAGE_H);
+    pctx.drawImage(canvas, 0, -p * PAGE_H);
+
+    // Page number
+    if (p > 0) {
+      pctx.fillStyle = 'rgba(13,33,72,0.5)';
+      pctx.font = '9px Arial';
+      pctx.textAlign = 'right';
+      pctx.fillText(`Página ${p + 1} / ${Math.ceil(fullH / PAGE_H)}`, PAGE_W - 20, PAGE_H - 8);
+      pctx.textAlign = 'left';
+    }
+    pageCanvases.push(pc);
+  }
+
+  // Build minimal valid PDF with each page as JPEG image
+  buildPDFFromCanvases(pageCanvases, titulo);
+}
+
+// ── PDF BUILDER (sin dependencias) ──────────────────────────────────
+function buildPDFFromCanvases(canvases, titulo) {
+  // Each canvas → JPEG base64
+  const images = canvases.map(c => {
+    const dataURL = c.toDataURL('image/jpeg', 0.92);
+    return dataURL.split(',')[1]; // raw base64
+  });
+
+  const W_PT = 841.89; // A4 landscape points width
+  const H_PT = 595.28; // A4 landscape points height
+
+  let pdf = '%PDF-1.4\n';
+  const offsets = [];
+  let obj = 1;
+
+  const addObj = (content) => {
+    offsets.push(pdf.length);
+    pdf += `${obj} 0 obj\n${content}\nendobj\n`;
+    return obj++;
+  };
+
+  // Catalog and pages will be added last
+  const pageObjIds = [];
+  const imageObjIds = [];
+
+  images.forEach((imgB64, i) => {
+    const imgBytes = atob(imgB64);
+    const imgLen = imgBytes.length;
+
+    // Image XObject
+    offsets.push(pdf.length);
+    const imgId = obj++;
+    imageObjIds.push(imgId);
+    pdf += `${imgId} 0 obj\n<< /Type /XObject /Subtype /Image /Width 1122 /Height 794 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imgLen} >>\nstream\n`;
+    // Append binary
+    for (let j = 0; j < imgBytes.length; j++) pdf += imgBytes[j];
+    pdf += '\nendstream\nendobj\n';
+
+    // Page content stream
+    const contentStr = `q ${W_PT} 0 0 ${H_PT} 0 0 cm /Im${i} Do Q`;
+    offsets.push(pdf.length);
+    const contentId = obj++;
+    pdf += `${contentId} 0 obj\n<< /Length ${contentStr.length} >>\nstream\n${contentStr}\nendstream\nendobj\n`;
+
+    // Page object
+    const pageId = addObj(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W_PT} ${H_PT}] /Contents ${contentId} 0 R /Resources << /XObject << /Im${i} ${imgId} 0 R >> >> >>`);
+    pageObjIds.push(pageId);
+  });
+
+  // Pages dict (obj 2)
+  offsets.splice(1, 0, pdf.length);
+  pdf += `2 0 obj\n<< /Type /Pages /Kids [${pageObjIds.map(id=>`${id} 0 R`).join(' ')}] /Count ${pageObjIds.length} >>\nendobj\n`;
+
+  // Catalog (obj 1)
+  offsets.splice(0, 0, pdf.length);
+  pdf += `1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n`;
+
+  // xref
+  const xrefOffset = pdf.length;
+  const totalObjs = obj;
+  pdf += `xref\n0 ${totalObjs}\n0000000000 65535 f \n`;
+  offsets.forEach(o => {
+    pdf += String(o).padStart(10, '0') + ' 00000 n \n';
+  });
+  pdf += `trailer\n<< /Size ${totalObjs} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+
+  // Download as binary
+  const bytes = new Uint8Array(pdf.length);
+  for (let i = 0; i < pdf.length; i++) bytes[i] = pdf.charCodeAt(i) & 0xff;
+  const blob = new Blob([bytes], { type: 'application/pdf' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `TrazApp_${reporteTipo}_${new Date().toISOString().slice(0,10)}.pdf`;
+  link.click();
+}
+
+// ── HELPERS ─────────────────────────────────────────────────────────
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function truncate(str, max) {
+  return str.length > max ? str.slice(0, max - 1) + '…' : str;
+}
+
+
+function exportReporteCSV() {
+  if (!reporteData.length) return;
+  const headers = document.querySelectorAll('#reporteTableHead th');
+  const rows    = document.querySelectorAll('#reporteTableBody tr');
+  const escape  = v => `"${(v?.textContent||v||'').replace(/"/g,'""')}"`;
+
+  const csvHeaders = [...headers].map(h => escape(h)).join(',');
+  const csvRows = [...rows].map(tr =>
+    [...tr.querySelectorAll('td')].map(td => escape(td)).join(',')
+  ).join('\n');
+
+  const csv = '\uFEFF' + csvHeaders + '\n' + csvRows; // BOM for Excel
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `TrazApp_Reporte_${reporteTipo}_${new Date().toISOString().slice(0,10)}.csv`;
+  link.click();
+}
+
+async function exportReportePDF() {
+  const { jsPDF } = window.jspdf;
+  if (!jsPDF) { alert('Error cargando jsPDF'); return; }
+
+  // ── Config ──────────────────────────────────────────────────────
+  const NAVY   = [13, 33, 72];
+  const ORANGE = [232, 119, 34];
+  const BG     = [240, 243, 250];
+  const WHITE  = [255, 255, 255];
+  const MUTED  = [120, 130, 150];
+  const GREEN  = [34, 197, 94];
+  const AMBER  = [245, 158, 11];
+  const RED    = [239, 68, 68];
+
+  const tipoLabels = {
+    cumplimiento: 'Cumplimiento EPP por Trabajador',
+    entregas:     'Historial de Entregas',
+    stock:        'Stock y Movimientos de Bodega',
+    vencimientos: 'Vencimientos y Alertas EPP',
+  };
+
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const PW = doc.internal.pageSize.getWidth();
+  const PH = doc.internal.pageSize.getHeight();
+
+  // ── HEADER ───────────────────────────────────────────────────────
+  // Navy background strip
+  doc.setFillColor(...NAVY);
+  doc.rect(0, 0, PW, 28, 'F');
+
+  // Orange accent bar
+  doc.setFillColor(...ORANGE);
+  doc.rect(0, 0, 6, 28, 'F');
+
+  // TrazApp logo text
+  doc.setTextColor(...ORANGE);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text('TrazApp', 12, 11);
+
+  doc.setTextColor(...WHITE);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text('EPP DASHBOARD', 12, 16);
+
+  // Report title
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text(tipoLabels[reporteTipo] || 'Reporte', PW / 2, 12, { align: 'center' });
+
+  // Date and filters
+  const fecha = new Date().toLocaleString('es-CL', { dateStyle: 'long', timeStyle: 'short' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(...MUTED.map(v => Math.min(v + 80, 255)));
+  doc.text(`Generado: ${fecha}`, PW / 2, 19, { align: 'center' });
+
+  // Filter summary
+  const centroText = document.getElementById('rfCentro').options[document.getElementById('rfCentro').selectedIndex]?.text || 'Todos';
+  const desde = document.getElementById('rfDesde').value;
+  const hasta = document.getElementById('rfHasta').value;
+  doc.text(`Centro: ${centroText}   |   Período: ${desde} al ${hasta}`, PW / 2, 24, { align: 'center' });
+
+  // Page number placeholder (right)
+  doc.setTextColor(...WHITE);
+  doc.setFontSize(8);
+  doc.text(`Página 1`, PW - 10, 12, { align: 'right' });
+
+  // ── KPI BOXES ────────────────────────────────────────────────────
+  const kpiEls = document.querySelectorAll('.reporte-kpi');
+  if (kpiEls.length) {
+    const kpiW = (PW - 20) / kpiEls.length;
+    kpiEls.forEach((el, i) => {
+      const x = 10 + i * kpiW;
+      const numEl = el.querySelector('.reporte-kpi-num');
+      const lblEl = el.querySelector('.reporte-kpi-label');
+      const numText = numEl?.textContent || '';
+      const lblText = lblEl?.textContent || '';
+      const numColor = numEl?.style.color || '';
+
+      doc.setFillColor(...BG);
+      doc.roundedRect(x, 32, kpiW - 3, 18, 2, 2, 'F');
+
+      // Number
+      let rgb = NAVY;
+      if (numColor.includes('22, 197')) rgb = GREEN;
+      else if (numColor.includes('239, 68')) rgb = RED;
+      else if (numColor.includes('232')) rgb = ORANGE;
+      doc.setTextColor(...rgb);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.text(numText, x + kpiW / 2 - 1.5, 43, { align: 'center' });
+
+      // Label
+      doc.setTextColor(...MUTED);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.text(lblText.replace(/[✅⚠️🚨📥📤🔴🟠🟡]/g, '').trim(), x + kpiW / 2 - 1.5, 48, { align: 'center' });
+    });
+  }
+
+  // ── CHART IMAGE ───────────────────────────────────────────────────
+  let tableStartY = 55;
+  const chartCanvas = document.getElementById('reporteChart');
+  if (chartCanvas && reporteChartInstance) {
+    try {
+      const chartImg = chartCanvas.toDataURL('image/png');
+      const chartH = 45;
+      const chartW = Math.min(PW * 0.45, 120);
+      doc.addImage(chartImg, 'PNG', PW - chartW - 10, 53, chartW, chartH);
+      tableStartY = 55;
+    } catch(e) { console.warn('Chart image failed:', e); }
+  }
+
+  // ── TABLE ─────────────────────────────────────────────────────────
+  const headers = [...document.querySelectorAll('#reporteTableHead th')].map(th => th.textContent);
+  const rows = [...document.querySelectorAll('#reporteTableBody tr')].map(tr =>
+    [...tr.querySelectorAll('td')].map(td => td.textContent.trim().replace(/[✅⚠️🚨📴🌐✍️🔴🟠🟡📥📤]/g, '').trim())
+  );
+
+  // Column width hints per report type
+  const colStyles = {};
+  if (reporteTipo === 'cumplimiento') {
+    colStyles[5] = { cellWidth: 30 }; // progress bar col
+  }
+
+  doc.autoTable({
+    head: [headers],
+    body: rows,
+    startY: tableStartY,
+    margin: { left: 10, right: chartCanvas ? (PW * 0.45 + 14) : 10 },
+    styles: {
+      fontSize: 8,
+      cellPadding: 2.5,
+      font: 'helvetica',
+      textColor: NAVY,
+      lineColor: [220, 225, 235],
+      lineWidth: 0.2,
+    },
+    headStyles: {
+      fillColor: NAVY,
+      textColor: WHITE,
+      fontStyle: 'bold',
+      fontSize: 8,
+    },
+    alternateRowStyles: {
+      fillColor: BG,
+    },
+    columnStyles: colStyles,
+    didParseCell: (data) => {
+      const text = data.cell.text?.[0] || '';
+      if (data.section === 'body') {
+        if (text.includes('Al día') || text.includes('100%')) {
+          data.cell.styles.textColor = GREEN;
+          data.cell.styles.fontStyle = 'bold';
+        } else if (text.includes('Crítico') || text.includes('Vencido') || text === '0') {
+          data.cell.styles.textColor = RED;
+          data.cell.styles.fontStyle = 'bold';
+        } else if (text.includes('Parcial') || text.includes('días')) {
+          data.cell.styles.textColor = AMBER;
+        }
+      }
+    },
+    willDrawPage: (data) => {
+      // Repeat header on each page
+      doc.setFillColor(...NAVY);
+      doc.rect(0, 0, PW, 10, 'F');
+      doc.setFillColor(...ORANGE);
+      doc.rect(0, 0, 3, 10, 'F');
+      doc.setTextColor(...WHITE);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      doc.text('TrazApp', 6, 7);
+      doc.setFont('helvetica', 'normal');
+      doc.text(tipoLabels[reporteTipo] || '', PW / 2, 7, { align: 'center' });
+      const pageNum = doc.internal.getCurrentPageInfo().pageNumber;
+      doc.text(`Página ${pageNum}`, PW - 8, 7, { align: 'right' });
+    }
+  });
+
+  // ── FOOTER ON LAST PAGE ───────────────────────────────────────────
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFillColor(...BG);
+    doc.rect(0, PH - 8, PW, 8, 'F');
+    doc.setTextColor(...MUTED);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.text('TrazApp — Sistema de Gestión de EPP — Documento generado automáticamente', 10, PH - 3);
+    doc.text(`${i} / ${totalPages}`, PW - 10, PH - 3, { align: 'right' });
+  }
+
+  // ── SAVE ──────────────────────────────────────────────────────────
+  const filename = `TrazApp_${tipoLabels[reporteTipo]?.replace(/ /g,'_') || reporteTipo}_${new Date().toISOString().slice(0,10)}.pdf`;
+  doc.save(filename);
 }
 
 
