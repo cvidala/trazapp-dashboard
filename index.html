@@ -2681,223 +2681,231 @@ async function exportReportePDF() {
     vencimientos: 'Vencimientos y Alertas EPP',
   };
 
-  // ── Leer datos de la tabla DOM ──────────────────────────────────
-  const headers = [...document.querySelectorAll('#reporteTableHead th')].map(th => th.textContent.trim());
-  const rows    = [...document.querySelectorAll('#reporteTableBody tr')].map(tr =>
-    [...tr.querySelectorAll('td')].map(td =>
-      td.textContent.trim().replace(/[^\x00-\x7FáéíóúüñÁÉÍÓÚÜÑ%.,:\-/+ ]/g, '').trim()
-    )
-  ).filter(r => r.some(c => c));
+  // ── Leer datos DOM ────────────────────────────────────────────────
+  const headers = [...document.querySelectorAll('#reporteTableHead th')]
+    .map(th => th.textContent.trim());
+  const rows = [...document.querySelectorAll('#reporteTableBody tr')]
+    .map(tr => [...tr.querySelectorAll('td')]
+      .map(td => td.textContent.trim().replace(/[^\x00-\x7FáéíóúüñÁÉÍÓÚÜÑ%.,:\-/+()\s]/g,'').trim())
+    ).filter(r => r.some(c => c));
 
   const kpis = [...document.querySelectorAll('.reporte-kpi')].map(el => ({
     num:   el.querySelector('.reporte-kpi-num')?.textContent.trim() || '',
-    label: el.querySelector('.reporte-kpi-label')?.textContent.replace(/[^\x00-\x7FáéíóúüñÁÉÍÓÚÜÑ%.,:\- ]/g, '').trim() || '',
+    label: el.querySelector('.reporte-kpi-label')?.textContent
+             .replace(/[^\x00-\x7FáéíóúüñÁÉÍÓÚÜÑ%.,:\- ]/g,'').trim() || '',
   }));
 
-  const titulo      = tipoLabels[reporteTipo] || 'Reporte';
-  const centroText  = document.getElementById('rfCentro').options[document.getElementById('rfCentro').selectedIndex]?.text || 'Todos';
-  const desde       = document.getElementById('rfDesde').value;
-  const hasta       = document.getElementById('rfHasta').value;
-  const fechaGen    = new Date().toLocaleString('es-CL', { dateStyle: 'long', timeStyle: 'short' });
+  const titulo     = tipoLabels[reporteTipo] || 'Reporte';
+  const centroText = document.getElementById('rfCentro').options[document.getElementById('rfCentro').selectedIndex]?.text || 'Todos';
+  const desde      = document.getElementById('rfDesde').value;
+  const hasta      = document.getElementById('rfHasta').value;
+  const fechaGen   = new Date().toLocaleString('es-CL', { dateStyle:'long', timeStyle:'short' });
 
-  // ── Capturar gráfico ────────────────────────────────────────────
+  // ── Capturar gráfico ──────────────────────────────────────────────
   let chartDataURL = null;
   try {
-    const chartCanvas = document.getElementById('reporteChart');
-    if (chartCanvas && reporteChartInstance) chartDataURL = chartCanvas.toDataURL('image/png');
+    const cc = document.getElementById('reporteChart');
+    if (cc && reporteChartInstance) chartDataURL = cc.toDataURL('image/png');
   } catch(e) {}
 
-  // ── Canvas setup ────────────────────────────────────────────────
-  const PAGE_W  = 1122; // A4 landscape @ 96dpi-ish
-  const PAGE_H  = 794;
-  const MARGIN  = 40;
-  const COL_W   = (PAGE_W - MARGIN * 2) / Math.max(headers.length, 1);
-  const ROW_H   = 28;
-  const HDR_H   = 80;
-  const KPI_H   = 90;
-  const CHART_H = chartDataURL ? 220 : 0;
+  // ── Constantes layout ─────────────────────────────────────────────
+  const PAGE_W = 1122;   // A4 landscape px
+  const PAGE_H = 794;
+  const M      = 44;     // margin
+  const TW     = PAGE_W - M * 2;  // table width
+  const HDR_H  = 72;
+  const KPI_H  = kpis.length ? 84 : 0;
+  const CHART_H= chartDataURL ? 180 : 0;
+  const ROW_H  = 26;
+  const TABLE_TOP = HDR_H + KPI_H + CHART_H + 8;
 
-  // Calculate total height needed
-  const tableH   = ROW_H * (rows.length + 1); // +1 header
-  const totalH   = HDR_H + KPI_H + CHART_H + tableH + 60;
-  const numPages = Math.ceil(totalH / PAGE_H);
+  // Column widths — auto proportional, but clamp wide columns
+  const nCols  = headers.length;
+  const colW   = Array(nCols).fill(TW / nCols);
+  // For entregas: give EPP column more space
+  if (reporteTipo === 'entregas' && nCols === 7) {
+    // # registro, fecha, trab, rut, centro, epp, validacion
+    [colW[0], colW[1], colW[2], colW[3], colW[4], colW[5], colW[6]] =
+    [80, 140, 130, 100, 130, 280, 80];
+  } else if (reporteTipo === 'cumplimiento' && nCols === 7) {
+    [colW[0],colW[1],colW[2],colW[3],colW[4],colW[5],colW[6]] =
+    [150, 100, 150, 80, 90, 100, 80];
+  }
 
-  // ── Draw all pages on a tall canvas then slice ──────────────────
-  const canvas  = document.createElement('canvas');
+  // Total content height
+  const totalH = TABLE_TOP + ROW_H * (rows.length + 1) + 50;
+
+  // ── Tall canvas ───────────────────────────────────────────────────
+  const canvas = document.createElement('canvas');
   canvas.width  = PAGE_W;
-  canvas.height = totalH;
-  const ctx     = canvas.getContext('2d');
+  canvas.height = Math.max(totalH, PAGE_H);
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, PAGE_W, canvas.height);
 
-  // Colors
-  const NAVY   = '#0D2148';
-  const ORANGE = '#E87722';
-  const BG     = '#F0F3FA';
-  const WHITE  = '#FFFFFF';
-  const MUTED  = '#8892a0';
-  const GREEN  = '#16a34a';
-  const AMBER  = '#d97706';
-  const RED    = '#dc2626';
-  const BORDER = '#dce3ef';
+  const NAVY='#0D2148', ORANGE='#E87722', BG='#F0F3FA', WHITE='#FFFFFF',
+        MUTED='#8892a0', GREEN='#16a34a', AMBER='#d97706', RED='#dc2626',
+        BORDER='#dce3ef';
 
-  let y = 0;
-
-  // ── HEADER ──────────────────────────────────────────────────────
-  // Navy background
+  // ── 1. HEADER BANNER ──────────────────────────────────────────────
   ctx.fillStyle = NAVY;
-  ctx.fillRect(0, y, PAGE_W, HDR_H);
-
-  // Orange left accent
+  ctx.fillRect(0, 0, PAGE_W, HDR_H);
   ctx.fillStyle = ORANGE;
-  ctx.fillRect(0, y, 8, HDR_H);
+  ctx.fillRect(0, 0, 8, HDR_H);
 
-  // TrazApp wordmark
+  // Logo
   ctx.fillStyle = ORANGE;
-  ctx.font = 'bold 28px Arial';
-  ctx.fillText('TrazApp', 22, y + 32);
+  ctx.font = 'bold 24px Arial';
+  ctx.fillText('TrazApp', 22, 28);
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.font = '10px Arial';
+  ctx.fillText('EPP DASHBOARD', 22, 44);
 
-  ctx.fillStyle = 'rgba(255,255,255,0.6)';
-  ctx.font = '11px Arial';
-  ctx.fillText('EPP DASHBOARD', 22, y + 50);
-
-  // Report title centered
+  // Título centrado
   ctx.fillStyle = WHITE;
-  ctx.font = 'bold 20px Arial';
+  ctx.font = 'bold 18px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText(titulo, PAGE_W / 2, y + 30);
-
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  ctx.font = '11px Arial';
-  ctx.fillText(`Generado: ${fechaGen}`, PAGE_W / 2, y + 48);
-  ctx.fillText(`Centro: ${centroText}   |   Período: ${desde} al ${hasta}`, PAGE_W / 2, y + 63);
-
+  ctx.fillText(titulo, PAGE_W/2, 28);
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.font = '10px Arial';
+  ctx.fillText(`Generado: ${fechaGen}   |   Centro: ${centroText}   |   Período: ${desde} – ${hasta}`, PAGE_W/2, 46);
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = '9px Arial';
+  ctx.fillText(`${rows.length} registro${rows.length!==1?'s':''}`, PAGE_W/2, 60);
   ctx.textAlign = 'left';
-  y += HDR_H;
 
-  // ── KPI BOXES ──────────────────────────────────────────────────
+  // ── 2. KPIs ───────────────────────────────────────────────────────
   if (kpis.length) {
     ctx.fillStyle = BG;
-    ctx.fillRect(0, y, PAGE_W, KPI_H);
-
-    const kW = (PAGE_W - MARGIN * 2 - (kpis.length - 1) * 12) / kpis.length;
+    ctx.fillRect(0, HDR_H, PAGE_W, KPI_H);
+    const kW = (TW - (kpis.length-1)*10) / kpis.length;
+    const numColors = [NAVY, ORANGE, GREEN, RED];
     kpis.forEach((kpi, i) => {
-      const x = MARGIN + i * (kW + 12);
-      // Card background
+      const x = M + i*(kW+10);
+      const y = HDR_H + 10;
       ctx.fillStyle = WHITE;
-      roundRect(ctx, x, y + 14, kW, KPI_H - 28, 10);
+      ctx.beginPath();
+      ctx.roundRect(x, y, kW, KPI_H-20, 8);
       ctx.fill();
-      // Shadow
-      ctx.shadowColor = 'rgba(13,33,72,0.08)';
-      ctx.shadowBlur = 8;
-      ctx.shadowOffsetY = 2;
-      ctx.fillStyle = WHITE;
-      roundRect(ctx, x, y + 14, kW, KPI_H - 28, 10);
-      ctx.fill();
-      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-
-      // Number - pick color by index
-      const numColors = [NAVY, ORANGE, GREEN, RED];
       ctx.fillStyle = numColors[i % numColors.length];
-      ctx.font = 'bold 26px Arial';
+      ctx.font = 'bold 22px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText(kpi.num, x + kW / 2, y + 46);
-
+      ctx.fillText(kpi.num, x+kW/2, y+34);
       ctx.fillStyle = MUTED;
-      ctx.font = '10px Arial';
-      ctx.fillText(kpi.label.toUpperCase().slice(0, 22), x + kW / 2, y + 62);
+      ctx.font = '9px Arial';
+      const lbl = kpi.label.toUpperCase().slice(0,28);
+      ctx.fillText(lbl, x+kW/2, y+52);
       ctx.textAlign = 'left';
     });
   }
-  y += KPI_H;
 
-  // ── CHART ───────────────────────────────────────────────────────
+  // ── 3. GRÁFICO (lado derecho, mismo nivel que tabla si hay espacio) ──
+  let chartImg = null;
   if (chartDataURL) {
+    chartImg = await loadImage(chartDataURL);
+    const cY = HDR_H + KPI_H + 8;
+    const cW = Math.round(TW * 0.42);
+    const cH = CHART_H - 16;
     ctx.fillStyle = WHITE;
-    ctx.fillRect(MARGIN, y + 10, PAGE_W - MARGIN * 2, CHART_H - 20);
-    const img = await loadImage(chartDataURL);
-    const chartW = Math.min(PAGE_W - MARGIN * 2, 600);
-    ctx.drawImage(img, MARGIN + 10, y + 16, chartW - 20, CHART_H - 32);
-    // Border
     ctx.strokeStyle = BORDER;
     ctx.lineWidth = 1;
-    ctx.strokeRect(MARGIN, y + 10, PAGE_W - MARGIN * 2, CHART_H - 20);
-    y += CHART_H;
+    ctx.beginPath();
+    ctx.roundRect(M + TW - cW, cY, cW, cH, 8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.drawImage(chartImg, M + TW - cW + 8, cY + 8, cW - 16, cH - 16);
   }
 
-  // ── TABLE ───────────────────────────────────────────────────────
-  // Header row
+  // ── 4. TABLA ──────────────────────────────────────────────────────
+  let ty = TABLE_TOP;
+
+  // Adjust table width if chart is on the right
+  const chartColW = chartDataURL ? Math.round(TW * 0.44) : 0;
+  const tableW    = TW - chartColW - (chartColW ? 12 : 0);
+
+  // Recalculate colW based on actual tableW
+  const scaleFactor = tableW / TW;
+  const finalColW = colW.map(w => w * scaleFactor);
+
+  // Table header
   ctx.fillStyle = NAVY;
-  ctx.fillRect(MARGIN, y, PAGE_W - MARGIN * 2, ROW_H);
+  ctx.fillRect(M, ty, tableW, ROW_H);
   ctx.fillStyle = WHITE;
-  ctx.font = 'bold 11px Arial';
-  const colW = (PAGE_W - MARGIN * 2) / headers.length;
+  ctx.font = 'bold 9.5px Arial';
+  let cx = M;
   headers.forEach((h, i) => {
-    ctx.fillText(truncate(h, 18), MARGIN + i * colW + 8, y + 19);
+    ctx.fillText(fitText(ctx, h, finalColW[i]-10), cx+6, ty+17);
+    cx += finalColW[i];
   });
-  y += ROW_H;
+  ty += ROW_H;
 
   // Data rows
   rows.forEach((row, ri) => {
-    const rowBg = ri % 2 === 0 ? WHITE : BG;
-    ctx.fillStyle = rowBg;
-    ctx.fillRect(MARGIN, y, PAGE_W - MARGIN * 2, ROW_H);
-
-    // Bottom border
+    ctx.fillStyle = ri%2===0 ? WHITE : '#f7f9fd';
+    ctx.fillRect(M, ty, tableW, ROW_H);
     ctx.fillStyle = BORDER;
-    ctx.fillRect(MARGIN, y + ROW_H - 1, PAGE_W - MARGIN * 2, 1);
+    ctx.fillRect(M, ty+ROW_H-1, tableW, 1);
 
+    cx = M;
     row.forEach((cell, ci) => {
-      // Color special values
-      const lower = cell.toLowerCase();
-      if (lower.includes('al dia') || lower.includes('al día') || lower === '100%') ctx.fillStyle = GREEN;
-      else if (lower.includes('critico') || lower.includes('crítico') || lower.includes('vencido')) ctx.fillStyle = RED;
-      else if (lower.includes('parcial') || lower.includes('dias') || lower.includes('días')) ctx.fillStyle = AMBER;
-      else ctx.fillStyle = NAVY;
-
-      ctx.font = '10px Arial';
-      ctx.fillText(truncate(cell, 22), MARGIN + ci * colW + 8, y + 18);
+      const low = cell.toLowerCase();
+      if      (low.includes('al da') || low.includes('al día') || low==='100%') ctx.fillStyle = GREEN;
+      else if (low.includes('critico')||low.includes('vencido')) ctx.fillStyle = RED;
+      else if (low.includes('parcial')||low.includes('proxim')) ctx.fillStyle = AMBER;
+      else ctx.fillStyle = '#1a2a4a';
+      ctx.font = '9.5px Arial';
+      ctx.fillText(fitText(ctx, cell, finalColW[ci]-10), cx+6, ty+17);
+      cx += finalColW[ci];
     });
-    y += ROW_H;
+    ty += ROW_H;
   });
 
-  // ── FOOTER LINE ─────────────────────────────────────────────────
-  y += 10;
+  // ── 5. FOOTER ─────────────────────────────────────────────────────
+  const footerY = Math.max(ty + 16, canvas.height - 36);
   ctx.fillStyle = NAVY;
-  ctx.fillRect(0, y, PAGE_W, 32);
+  ctx.fillRect(0, footerY, PAGE_W, 36);
   ctx.fillStyle = ORANGE;
-  ctx.fillRect(0, y, 8, 32);
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  ctx.font = '10px Arial';
+  ctx.fillRect(0, footerY, 8, 36);
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.font = '9px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('TrazApp — Sistema de Gestión de EPP — Documento generado automáticamente', PAGE_W / 2, y + 20);
+  ctx.fillText('TrazApp — Sistema de Gestión de EPP — Documento generado automáticamente', PAGE_W/2, footerY+22);
   ctx.textAlign = 'left';
 
-  // ── SLICE INTO PAGES AND BUILD PDF ─────────────────────────────
+  // ── 6. SLICEAR EN PÁGINAS ─────────────────────────────────────────
+  const fullH = footerY + 36;
+  const nPages = Math.ceil(fullH / PAGE_H);
   const pageCanvases = [];
-  const fullH = y + 32;
 
-  for (let p = 0; p < Math.ceil(fullH / PAGE_H); p++) {
+  for (let p = 0; p < nPages; p++) {
     const pc = document.createElement('canvas');
-    pc.width = PAGE_W;
-    pc.height = PAGE_H;
+    pc.width = PAGE_W; pc.height = PAGE_H;
     const pctx = pc.getContext('2d');
     pctx.fillStyle = WHITE;
     pctx.fillRect(0, 0, PAGE_W, PAGE_H);
-    pctx.drawImage(canvas, 0, -p * PAGE_H);
+    pctx.drawImage(canvas, 0, 0, PAGE_W, fullH, 0, -p*PAGE_H, PAGE_W, fullH);
 
-    // Page number
-    if (p > 0) {
-      pctx.fillStyle = 'rgba(13,33,72,0.5)';
-      pctx.font = '9px Arial';
-      pctx.textAlign = 'right';
-      pctx.fillText(`Página ${p + 1} / ${Math.ceil(fullH / PAGE_H)}`, PAGE_W - 20, PAGE_H - 8);
-      pctx.textAlign = 'left';
-    }
+    // page number
+    pctx.fillStyle = 'rgba(13,33,72,0.4)';
+    pctx.font = '8px Arial';
+    pctx.textAlign = 'right';
+    pctx.fillText(`${p+1} / ${nPages}`, PAGE_W-16, PAGE_H-8);
+    pctx.textAlign = 'left';
     pageCanvases.push(pc);
   }
 
-  // Build minimal valid PDF with each page as JPEG image
   buildPDFFromCanvases(pageCanvases, titulo);
 }
+
+// Fit text to width — truncate with ellipsis
+function fitText(ctx, text, maxW) {
+  if (!text) return '';
+  if (ctx.measureText(text).width <= maxW) return text;
+  let t = text;
+  while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0,-1);
+  return t + '…';
+}
+
 
 // ── PDF BUILDER (sin dependencias) ──────────────────────────────────
 function buildPDFFromCanvases(canvases, titulo) {
