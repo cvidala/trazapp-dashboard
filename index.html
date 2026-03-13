@@ -268,6 +268,26 @@
   .kpi-card{animation:fadeUp 0.4s ease both;}
   .kpi-card:nth-child(1){animation-delay:0.05s}.kpi-card:nth-child(2){animation-delay:0.1s}
   .kpi-card:nth-child(3){animation-delay:0.15s}.kpi-card:nth-child(4){animation-delay:0.2s}
+
+  /* REPORTES */
+  .reporte-tipo-card{border:2px solid var(--border);border-radius:14px;padding:16px;cursor:pointer;transition:all 0.15s;text-align:center;background:white;}
+  .reporte-tipo-card:hover{border-color:var(--orange);background:#fff8f5;}
+  .reporte-tipo-card.active{border-color:var(--orange);background:linear-gradient(135deg,#fff4ee,#ffe8d6);box-shadow:0 4px 16px rgba(232,98,10,0.15);}
+  .reporte-tipo-icon{font-size:28px;margin-bottom:8px;}
+  .reporte-tipo-label{font-weight:700;font-size:13px;color:var(--navy);margin-bottom:4px;}
+  .reporte-tipo-sub{font-size:11px;color:var(--muted);}
+  .reporte-kpi{background:var(--bg);border-radius:14px;padding:16px;text-align:center;}
+  .reporte-kpi-num{font-size:32px;font-weight:800;color:var(--navy);font-family:'JetBrains Mono',monospace;}
+  .reporte-kpi-label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-top:4px;}
+  @media print {
+    .sidebar,.topbar,.btn,.page-header button,#reporteTipoGrid,#reporteFiltros,#reporteEmpty{display:none!important;}
+    .main{margin-left:0!important;}
+    .page{display:block!important;}
+    .card{box-shadow:none!important;border:1px solid #ddd!important;}
+    #reporteKpis,#reporteChartCard,#reporteResultCard{display:block!important;}
+    body{background:white!important;}
+  }
+
 </style>
 </head>
 <body>
@@ -317,6 +337,7 @@
       <div class="nav-item" data-page="trabajadores" onclick="navTo('trabajadores')"><span class="nav-icon">👷</span> Trabajadores</div>
       <div class="nav-item" data-page="stock" onclick="navTo('stock')"><span class="nav-icon">📦</span> Stock EPP</div>
       <div class="nav-item" data-page="entregas" onclick="navTo('entregas')"><span class="nav-icon">📋</span> Entregas</div>
+      <div class="nav-item" data-page="reportes" onclick="navTo('reportes')"><span class="nav-icon">📊</span> Reportes</div>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Gestión</div>
@@ -560,6 +581,131 @@
           <button class="btn btn-primary" id="btnNuevoCentro" style="display:none" onclick="openNuevoCentro()">+ Nuevo Centro</button>
         </div>
         <div id="centrosList"></div>
+      </div>
+
+
+      <!-- PAGE: REPORTES -->
+      <div class="page" id="page-reportes">
+        <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div>
+            <div class="page-title">📊 Reportes</div>
+            <div class="page-sub">Genera reportes dinámicos con los filtros que necesites</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary" onclick="exportReporteCSV()" id="btnExportCSV" style="display:none">⬇️ Exportar CSV</button>
+            <button class="btn btn-secondary" onclick="exportReportePDF()" id="btnExportPDF" style="display:none">🖨️ Imprimir / PDF</button>
+          </div>
+        </div>
+
+        <!-- REPORT BUILDER -->
+        <div class="card" style="margin-bottom:16px">
+          <div style="font-weight:700;font-size:13px;color:var(--navy);margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+            <span style="background:var(--orange);color:white;border-radius:8px;padding:4px 10px;font-size:11px;">CONSTRUCTOR DE REPORTE</span>
+          </div>
+
+          <!-- Tipo de reporte -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;" id="reporteTipoGrid">
+            <div class="reporte-tipo-card active" data-tipo="cumplimiento" onclick="selectReporteTipo('cumplimiento')">
+              <div class="reporte-tipo-icon">✅</div>
+              <div class="reporte-tipo-label">Cumplimiento EPP</div>
+              <div class="reporte-tipo-sub">Por trabajador y centro</div>
+            </div>
+            <div class="reporte-tipo-card" data-tipo="entregas" onclick="selectReporteTipo('entregas')">
+              <div class="reporte-tipo-icon">📦</div>
+              <div class="reporte-tipo-label">Historial Entregas</div>
+              <div class="reporte-tipo-sub">Detalle por fecha y EPP</div>
+            </div>
+            <div class="reporte-tipo-card" data-tipo="stock" onclick="selectReporteTipo('stock')">
+              <div class="reporte-tipo-icon">🏪</div>
+              <div class="reporte-tipo-label">Stock y Movimientos</div>
+              <div class="reporte-tipo-sub">Por bodega y EPP</div>
+            </div>
+            <div class="reporte-tipo-card" data-tipo="vencimientos" onclick="selectReporteTipo('vencimientos')">
+              <div class="reporte-tipo-icon">⚠️</div>
+              <div class="reporte-tipo-label">Vencimientos y Alertas</div>
+              <div class="reporte-tipo-sub">EPP próximos a vencer</div>
+            </div>
+          </div>
+
+          <!-- Filtros dinámicos -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;align-items:end;" id="reporteFiltros">
+            <div class="form-group" style="margin:0">
+              <label class="form-label">Centro de Costo</label>
+              <select class="form-select" id="rfCentro" onchange="onReporteFiltroChange()">
+                <option value="all">Todos</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0" id="rfTrabajadorGroup">
+              <label class="form-label">Trabajador</label>
+              <select class="form-select" id="rfTrabajador" onchange="onReporteFiltroChange()">
+                <option value="all">Todos</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0" id="rfEppGroup">
+              <label class="form-label">EPP</label>
+              <select class="form-select" id="rfEpp" onchange="onReporteFiltroChange()">
+                <option value="all">Todos</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0" id="rfBodegaGroup">
+              <label class="form-label">Bodega</label>
+              <select class="form-select" id="rfBodega" onchange="onReporteFiltroChange()">
+                <option value="all">Todas</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="form-label">Desde</label>
+              <input type="date" class="form-input" id="rfDesde" onchange="onReporteFiltroChange()">
+            </div>
+            <div class="form-group" style="margin:0">
+              <label class="form-label">Hasta</label>
+              <input type="date" class="form-input" id="rfHasta" onchange="onReporteFiltroChange()">
+            </div>
+            <div class="form-group" style="margin:0" id="rfEstadoGroup">
+              <label class="form-label">Estado EPP</label>
+              <select class="form-select" id="rfEstado" onchange="onReporteFiltroChange()">
+                <option value="all">Todos</option>
+                <option value="ok">✅ Al día</option>
+                <option value="warn">⚠️ Parcial</option>
+                <option value="danger">🚨 Crítico</option>
+              </select>
+            </div>
+            <div style="display:flex;align-items:flex-end;">
+              <button class="btn btn-primary" style="width:100%" onclick="generarReporte()">▶ Generar Reporte</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI SUMMARY (shown after generate) -->
+        <div id="reporteKpis" style="display:none;margin-bottom:16px">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;" id="reporteKpisGrid"></div>
+        </div>
+
+        <!-- CHART (shown after generate) -->
+        <div class="card" id="reporteChartCard" style="display:none;margin-bottom:16px;">
+          <canvas id="reporteChart" height="80"></canvas>
+        </div>
+
+        <!-- RESULTS TABLE -->
+        <div class="card" id="reporteResultCard" style="display:none;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div id="reporteResultTitle" style="font-weight:700;font-size:14px;color:var(--navy)"></div>
+            <div id="reporteResultCount" style="font-size:12px;color:var(--muted)"></div>
+          </div>
+          <div class="table-wrap">
+            <table class="full-table" id="reporteTable">
+              <thead id="reporteTableHead"></thead>
+              <tbody id="reporteTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- EMPTY STATE -->
+        <div id="reporteEmpty" style="text-align:center;padding:60px 20px;color:var(--muted);">
+          <div style="font-size:48px;margin-bottom:16px">📊</div>
+          <div style="font-size:16px;font-weight:600;color:var(--navy);margin-bottom:8px">Configura y genera tu reporte</div>
+          <div style="font-size:13px">Selecciona el tipo de reporte, ajusta los filtros y presiona <strong>Generar Reporte</strong></div>
+        </div>
       </div>
 
       <!-- PAGE: USUARIOS (ADMIN ONLY) -->
@@ -1093,6 +1239,7 @@ const PAGE_TITLES = {
   entregas: '📋 Historial de Entregas',
   alertas: '⚠️ Alertas EPP',
   centros: '🏗️ Centros de Costo',
+  reportes: '📊 Reportes',
   usuarios: '👤 Usuarios',
 };
 
@@ -1119,6 +1266,7 @@ function navTo(page) {
   if (page === 'entregas'     && allEntregas.length === 0)     loadPageEntregas();
   if (page === 'alertas'      && allAlertas.length === 0)      loadPageAlertas();
   if (page === 'centros'      && allCentros.length === 0)      loadPageCentros();
+  if (page === 'reportes')    initPageReportes();
 
   // Re-populate if switching back
   if (page === 'trabajadores' && allTrabajadores.length > 0) renderTrabajadoresPage(allTrabajadores);
@@ -2116,6 +2264,410 @@ async function eliminarEpp(eppId, nombre) {
   allStock = [];
   await loadPageStock();
 }
+
+
+// ═══════════════════════════════════════════════════════════════
+// REPORTES — ENGINE COMPLETO
+// ═══════════════════════════════════════════════════════════════
+
+let reporteTipo = 'cumplimiento';
+let reporteData = [];
+let reporteChartInstance = null;
+
+async function initPageReportes() {
+  // Set default dates (last 30 days)
+  const hoy = new Date();
+  const hace30 = new Date(hoy); hace30.setDate(hoy.getDate() - 30);
+  document.getElementById('rfHasta').value = hoy.toISOString().slice(0,10);
+  document.getElementById('rfDesde').value = hace30.toISOString().slice(0,10);
+
+  // Load filter options
+  const [{ data: obras }, { data: trabajadores }, { data: catalogo }, { data: bodegas }] = await Promise.all([
+    sb.from('obras').select('obra_id, nombre').eq('estado','ACTIVA').order('nombre'),
+    sb.from('trabajadores').select('trabajador_id, nombre').order('nombre'),
+    sb.from('catalogo_epp').select('epp_id, nombre, codigo').order('nombre'),
+    sb.from('bodegas').select('bodega_id, nombre').order('nombre')
+  ]);
+
+  const rfCentro = document.getElementById('rfCentro');
+  rfCentro.innerHTML = '<option value="all">Todos</option>' + (obras||[]).map(o => `<option value="${o.obra_id}">${o.nombre}</option>`).join('');
+
+  const rfTrab = document.getElementById('rfTrabajador');
+  rfTrab.innerHTML = '<option value="all">Todos</option>' + (trabajadores||[]).map(t => `<option value="${t.trabajador_id}">${t.nombre}</option>`).join('');
+
+  const rfEpp = document.getElementById('rfEpp');
+  rfEpp.innerHTML = '<option value="all">Todos</option>' + (catalogo||[]).map(e => `<option value="${e.epp_id}">${e.nombre}</option>`).join('');
+
+  const rfBodega = document.getElementById('rfBodega');
+  rfBodega.innerHTML = '<option value="all">Todas</option>' + (bodegas||[]).map(b => `<option value="${b.bodega_id}">${b.nombre}</option>`).join('');
+
+  selectReporteTipo('cumplimiento');
+}
+
+function selectReporteTipo(tipo) {
+  reporteTipo = tipo;
+  document.querySelectorAll('.reporte-tipo-card').forEach(el => {
+    el.classList.toggle('active', el.dataset.tipo === tipo);
+  });
+  // Show/hide relevant filters
+  document.getElementById('rfTrabajadorGroup').style.display = ['cumplimiento','entregas','vencimientos'].includes(tipo) ? '' : 'none';
+  document.getElementById('rfEppGroup').style.display = ['entregas','stock','vencimientos'].includes(tipo) ? '' : 'none';
+  document.getElementById('rfBodegaGroup').style.display = tipo === 'stock' ? '' : 'none';
+  document.getElementById('rfEstadoGroup').style.display = tipo === 'cumplimiento' ? '' : 'none';
+  // Reset results
+  hideReporteResults();
+}
+
+function onReporteFiltroChange() { /* live update optional — user clicks Generar */ }
+
+function hideReporteResults() {
+  document.getElementById('reporteKpis').style.display = 'none';
+  document.getElementById('reporteChartCard').style.display = 'none';
+  document.getElementById('reporteResultCard').style.display = 'none';
+  document.getElementById('reporteEmpty').style.display = '';
+  document.getElementById('btnExportCSV').style.display = 'none';
+  document.getElementById('btnExportPDF').style.display = 'none';
+}
+
+async function generarReporte() {
+  showLoading(true);
+  try {
+    const filtros = {
+      centro:     document.getElementById('rfCentro').value,
+      trabajador: document.getElementById('rfTrabajador').value,
+      epp:        document.getElementById('rfEpp').value,
+      bodega:     document.getElementById('rfBodega').value,
+      desde:      document.getElementById('rfDesde').value,
+      hasta:      document.getElementById('rfHasta').value + 'T23:59:59',
+      estado:     document.getElementById('rfEstado').value,
+    };
+
+    if (reporteTipo === 'cumplimiento')   await generarReporteCumplimiento(filtros);
+    if (reporteTipo === 'entregas')       await generarReporteEntregas(filtros);
+    if (reporteTipo === 'stock')          await generarReporteStock(filtros);
+    if (reporteTipo === 'vencimientos')   await generarReporteVencimientos(filtros);
+
+    document.getElementById('btnExportCSV').style.display = '';
+    document.getElementById('btnExportPDF').style.display = '';
+    document.getElementById('reporteEmpty').style.display = 'none';
+  } catch(e) {
+    console.error('generarReporte error:', e);
+    alert('Error generando reporte: ' + e.message);
+  } finally { showLoading(false); }
+}
+
+// ── REPORTE 1: CUMPLIMIENTO ───────────────────────────────────────
+async function generarReporteCumplimiento(f) {
+  let q = sb.from('trabajador_obras')
+    .select('obra_id, obras(nombre), trabajadores(trabajador_id, nombre, rut)');
+  if (f.centro !== 'all') q = q.eq('obra_id', f.centro);
+  if (f.trabajador !== 'all') q = q.eq('trabajador_id', f.trabajador);
+  const { data: rows, error } = await q;
+  if (error) throw error;
+
+  const trabIds = [...new Set((rows||[]).map(r => r.trabajadores?.trabajador_id).filter(Boolean))];
+  const obraIds = [...new Set((rows||[]).map(r => r.obra_id))];
+
+  const [{ data: reglas }, { data: entregas }] = await Promise.all([
+    sb.from('obra_epp_reglas').select('obra_id, epp_id').in('obra_id', obraIds),
+    sb.from('entregas_epp').select('trabajador_id, obra_id, items').in('trabajador_id', trabIds)
+  ]);
+
+  const reglasPorObra = {};
+  for (const r of (reglas||[])) {
+    if (!reglasPorObra[r.obra_id]) reglasPorObra[r.obra_id] = new Set();
+    reglasPorObra[r.obra_id].add(r.epp_id);
+  }
+  const eppPorTrab = {};
+  for (const e of (entregas||[])) {
+    const key = `${e.trabajador_id}_${e.obra_id}`;
+    if (!eppPorTrab[key]) eppPorTrab[key] = new Set();
+    for (const it of (e.items||[])) if (it.epp_id) eppPorTrab[key].add(it.epp_id);
+  }
+
+  let result = (rows||[]).map(r => {
+    const t = r.trabajadores; if (!t) return null;
+    const reqs = reglasPorObra[r.obra_id]?.size || 0;
+    const entregados = eppPorTrab[`${t.trabajador_id}_${r.obra_id}`]?.size || 0;
+    const pct = reqs > 0 ? Math.min(Math.round(entregados/reqs*100),100) : (entregados>0?100:0);
+    const estado = pct===100?'ok':pct>=60?'warn':'danger';
+    return { nombre: t.nombre, rut: t.rut||'—', centro: r.obras?.nombre||'—', reqs, entregados, pct, estado };
+  }).filter(Boolean);
+
+  if (f.estado !== 'all') result = result.filter(r => r.estado === f.estado);
+  result.sort((a,b) => a.pct - b.pct);
+
+  reporteData = result;
+  const total = result.length;
+  const alDia = result.filter(r=>r.estado==='ok').length;
+  const parcial = result.filter(r=>r.estado==='warn').length;
+  const critico = result.filter(r=>r.estado==='danger').length;
+  const promPct = total ? Math.round(result.reduce((s,r)=>s+r.pct,0)/total) : 0;
+
+  renderReporteKpis([
+    { num: total, label: 'Trabajadores', color: 'var(--navy)' },
+    { num: `${promPct}%`, label: 'Cumplimiento Promedio', color: promPct>=80?'var(--green)':promPct>=50?'var(--orange)':'var(--red)' },
+    { num: alDia, label: '✅ Al día', color: 'var(--green)' },
+    { num: critico, label: '🚨 Críticos', color: 'var(--red)' },
+  ]);
+
+  renderReporteChart('bar',
+    result.map(r => r.nombre.split(' ')[0]),
+    [{ label: 'Cumplimiento %', data: result.map(r => r.pct), backgroundColor: result.map(r => r.estado==='ok'?'#22c55e':r.estado==='warn'?'#f59e0b':'#ef4444') }],
+    { max: 100, suffix: '%' }
+  );
+
+  renderReporteTable(
+    ['Trabajador','RUT','Centro de Costo','EPP Requeridos','EPP Entregados','Cumplimiento','Estado'],
+    result.map(r => [
+      r.nombre, r.rut, r.centro, r.reqs, r.entregados,
+      `<div style="display:flex;align-items:center;gap:6px"><div class="progress-wrap" style="width:80px"><div class="progress-bar ${r.estado}" style="width:${r.pct}%"></div></div><span style="font-size:11px;font-weight:600">${r.pct}%</span></div>`,
+      `<span class="badge ${r.estado}">${r.estado==='ok'?'✅ Al día':r.estado==='warn'?'⚠️ Parcial':'🚨 Crítico'}</span>`
+    ]),
+    `Reporte de Cumplimiento EPP`, result.length
+  );
+}
+
+// ── REPORTE 2: ENTREGAS ───────────────────────────────────────────
+async function generarReporteEntregas(f) {
+  let q = sb.from('entregas_epp')
+    .select('event_id, created_at, validacion_tipo, trabajadores(nombre,rut), obras(nombre), items')
+    .gte('created_at', f.desde).lte('created_at', f.hasta)
+    .order('created_at', { ascending: false }).limit(500);
+  if (f.centro !== 'all') q = q.eq('obra_id', f.centro);
+  if (f.trabajador !== 'all') q = q.eq('trabajador_id', f.trabajador);
+  const { data, error } = await q;
+  if (error) throw error;
+
+  const { data: catalogo } = await sb.from('catalogo_epp').select('epp_id, nombre');
+  const catMap = {}; for (const c of (catalogo||[])) catMap[c.epp_id] = c.nombre;
+
+  let result = (data||[]).map(e => {
+    const items = (e.items||[]);
+    const eppFiltrado = f.epp !== 'all' ? items.filter(it => it.epp_id === f.epp) : items;
+    if (f.epp !== 'all' && !eppFiltrado.length) return null;
+    const eppNombres = eppFiltrado.map(it => `${catMap[it.epp_id]||'—'} x${it.cantidad}`).join(', ');
+    const tipo = e.validacion_tipo==='OFFLINE_SYNC'?'📴 Offline':e.validacion_tipo==='FIRMA_DIGITAL'?'✍️ Firma':'🌐 Online';
+    return { id: e.event_id.slice(-8).toUpperCase(), fecha: new Date(e.created_at).toLocaleString('es-CL'), trabajador: e.trabajadores?.nombre||'—', rut: e.trabajadores?.rut||'—', centro: e.obras?.nombre||'—', epp: eppNombres, tipo, ts: e.created_at };
+  }).filter(Boolean);
+
+  reporteData = result;
+
+  // KPIs
+  const porDia = {};
+  result.forEach(r => { const d = r.ts.slice(0,10); porDia[d] = (porDia[d]||0)+1; });
+  const diasOrdenados = Object.keys(porDia).sort().slice(-14);
+
+  renderReporteKpis([
+    { num: result.length, label: 'Total Entregas', color: 'var(--navy)' },
+    { num: result.filter(r=>r.tipo.includes('Firma')).length, label: 'Con Firma Digital', color: 'var(--orange)' },
+    { num: result.filter(r=>r.tipo.includes('Offline')).length, label: 'Registradas Offline', color: 'var(--muted)' },
+    { num: [...new Set(result.map(r=>r.trabajador))].length, label: 'Trabajadores', color: 'var(--green)' },
+  ]);
+
+  renderReporteChart('line',
+    diasOrdenados,
+    [{ label: 'Entregas por día', data: diasOrdenados.map(d => porDia[d]||0), borderColor:'#E8620A', backgroundColor:'rgba(232,98,10,0.1)', fill:true, tension:0.4 }],
+    {}
+  );
+
+  renderReporteTable(
+    ['# Registro','Fecha','Trabajador','RUT','Centro','EPP Entregado','Validación'],
+    result.map(r => [r.id, r.fecha, r.trabajador, r.rut, r.centro, r.epp, r.tipo]),
+    'Historial de Entregas', result.length
+  );
+}
+
+// ── REPORTE 3: STOCK Y MOVIMIENTOS ───────────────────────────────
+async function generarReporteStock(f) {
+  let q = sb.from('stock_movimientos')
+    .select('tipo, cantidad, created_at, descripcion, bodegas(bodega_id, nombre, obras(nombre)), catalogo_epp(epp_id, nombre, codigo)')
+    .order('created_at', { ascending: false }).limit(500);
+  if (f.bodega !== 'all') q = q.eq('bodega_id', f.bodega);
+  if (f.epp !== 'all') q = q.eq('epp_id', f.epp);
+  if (f.desde) q = q.gte('created_at', f.desde);
+  if (f.hasta) q = q.lte('created_at', f.hasta);
+  const { data, error } = await q;
+  if (error) throw error;
+
+  if (f.centro !== 'all') {
+    // filter by obra
+  }
+
+  // Stock actual por EPP+bodega
+  const stockMap = {};
+  for (const m of (data||[])) {
+    const key = `${m.catalogo_epp?.epp_id}_${m.bodegas?.bodega_id}`;
+    if (!stockMap[key]) stockMap[key] = { epp: m.catalogo_epp?.nombre||'—', codigo: m.catalogo_epp?.codigo||'—', bodega: m.bodegas?.nombre||'—', centro: m.bodegas?.obras?.nombre||'—', entradas:0, salidas:0 };
+    if (m.tipo==='ENTRADA') stockMap[key].entradas += m.cantidad;
+    else stockMap[key].salidas += m.cantidad;
+  }
+  const result = Object.values(stockMap).map(s => ({ ...s, saldo: s.entradas - s.salidas }));
+  result.sort((a,b) => a.saldo - b.saldo);
+
+  reporteData = result;
+  const totalEntradas = result.reduce((s,r)=>s+r.entradas,0);
+  const totalSalidas  = result.reduce((s,r)=>s+r.salidas,0);
+  const criticos = result.filter(r=>r.saldo<=0).length;
+
+  renderReporteKpis([
+    { num: data?.length||0, label: 'Movimientos', color: 'var(--navy)' },
+    { num: totalEntradas, label: '📥 Total Entradas', color: 'var(--green)' },
+    { num: totalSalidas, label: '📤 Total Salidas', color: 'var(--orange)' },
+    { num: criticos, label: '🔴 EPP Sin Stock', color: 'var(--red)' },
+  ]);
+
+  const top8 = result.slice(0,8);
+  renderReporteChart('bar',
+    top8.map(r => r.epp.slice(0,12)),
+    [
+      { label: 'Entradas', data: top8.map(r=>r.entradas), backgroundColor:'#22c55e' },
+      { label: 'Salidas',  data: top8.map(r=>r.salidas),  backgroundColor:'#f59e0b' },
+    ], {}
+  );
+
+  renderReporteTable(
+    ['EPP','Código','Bodega','Centro','Entradas','Salidas','Saldo Actual'],
+    result.map(r => [
+      r.epp, r.codigo, r.bodega, r.centro, r.entradas, r.salidas,
+      `<span style="font-weight:700;color:${r.saldo<=0?'var(--red)':r.saldo<=3?'var(--orange)':'var(--green)'}">${r.saldo}</span>`
+    ]),
+    'Stock y Movimientos por Bodega', result.length
+  );
+}
+
+// ── REPORTE 4: VENCIMIENTOS Y ALERTAS ────────────────────────────
+async function generarReporteVencimientos(f) {
+  let q = sb.from('entregas_epp')
+    .select('event_id, created_at, trabajadores(trabajador_id, nombre, rut), obras(nombre), items')
+    .order('created_at', { ascending: false }).limit(1000);
+  if (f.centro !== 'all') q = q.eq('obra_id', f.centro);
+  if (f.trabajador !== 'all') q = q.eq('trabajador_id', f.trabajador);
+  const { data: entregas, error } = await q;
+  if (error) throw error;
+
+  const { data: catalogo } = await sb.from('catalogo_epp').select('epp_id, nombre, codigo, vida_util_dias');
+  const catMap = {}; for (const c of (catalogo||[])) catMap[c.epp_id] = c;
+
+  const hoy = new Date();
+  const result = [];
+
+  for (const e of (entregas||[])) {
+    for (const it of (e.items||[])) {
+      const cat = catMap[it.epp_id]; if (!cat) continue;
+      if (f.epp !== 'all' && it.epp_id !== f.epp) continue;
+      const vidaUtil = cat.vida_util_dias;
+      if (!vidaUtil) continue;
+      const fechaEntrega = new Date(e.created_at);
+      const fechaVenc = new Date(fechaEntrega); fechaVenc.setDate(fechaVenc.getDate() + vidaUtil);
+      const diasRestantes = Math.ceil((fechaVenc - hoy) / (1000*60*60*24));
+      const estado = diasRestantes < 0 ? 'vencido' : diasRestantes <= 30 ? 'critico' : diasRestantes <= 90 ? 'proximo' : 'vigente';
+      if (estado === 'vigente') continue; // Solo mostrar alertas
+      result.push({
+        trabajador: e.trabajadores?.nombre||'—', rut: e.trabajadores?.rut||'—',
+        centro: e.obras?.nombre||'—', epp: cat.nombre, codigo: cat.codigo||'—',
+        fechaEntrega: fechaEntrega.toLocaleDateString('es-CL'),
+        fechaVenc: fechaVenc.toLocaleDateString('es-CL'),
+        diasRestantes, estado
+      });
+    }
+  }
+  result.sort((a,b) => a.diasRestantes - b.diasRestantes);
+  reporteData = result;
+
+  const vencidos  = result.filter(r=>r.estado==='vencido').length;
+  const criticos  = result.filter(r=>r.estado==='critico').length;
+  const proximos  = result.filter(r=>r.estado==='proximo').length;
+
+  renderReporteKpis([
+    { num: result.length, label: 'Total Alertas', color: 'var(--navy)' },
+    { num: vencidos,  label: '🔴 Vencidos',    color: 'var(--red)' },
+    { num: criticos,  label: '🟠 < 30 días',   color: 'var(--orange)' },
+    { num: proximos,  label: '🟡 < 90 días',   color: '#f59e0b' },
+  ]);
+
+  const byEpp = {};
+  result.forEach(r => { byEpp[r.epp] = (byEpp[r.epp]||0)+1; });
+  const top8 = Object.entries(byEpp).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  renderReporteChart('doughnut',
+    top8.map(e=>e[0]),
+    [{ data: top8.map(e=>e[1]), backgroundColor:['#ef4444','#f59e0b','#f97316','#eab308','#84cc16','#22c55e','#06b6d4','#6366f1'] }],
+    {}
+  );
+
+  renderReporteTable(
+    ['Trabajador','RUT','Centro','EPP','Código','Fecha Entrega','Vence','Días Restantes','Estado'],
+    result.map(r => {
+      const badge = r.estado==='vencido' ? '<span class="badge danger">🔴 Vencido</span>' : r.estado==='critico' ? '<span class="badge warn">🟠 Crítico</span>' : '<span class="badge" style="background:#fef9c3;color:#854d0e">🟡 Próximo</span>';
+      const dias = r.diasRestantes < 0 ? `<span style="color:var(--red);font-weight:700">${r.diasRestantes} días</span>` : `<span style="color:var(--orange);font-weight:700">+${r.diasRestantes} días</span>`;
+      return [r.trabajador, r.rut, r.centro, r.epp, r.codigo, r.fechaEntrega, r.fechaVenc, dias, badge];
+    }),
+    'Vencimientos y Alertas EPP', result.length
+  );
+}
+
+// ── RENDER HELPERS ────────────────────────────────────────────────
+function renderReporteKpis(kpis) {
+  document.getElementById('reporteKpisGrid').innerHTML = kpis.map(k => `
+    <div class="reporte-kpi">
+      <div class="reporte-kpi-num" style="color:${k.color}">${k.num}</div>
+      <div class="reporte-kpi-label">${k.label}</div>
+    </div>`).join('');
+  document.getElementById('reporteKpis').style.display = '';
+}
+
+function renderReporteChart(type, labels, datasets, opts) {
+  document.getElementById('reporteChartCard').style.display = '';
+  if (reporteChartInstance) { reporteChartInstance.destroy(); reporteChartInstance = null; }
+  const ctx = document.getElementById('reporteChart').getContext('2d');
+  reporteChartInstance = new Chart(ctx, {
+    type,
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: datasets.length > 1 || type === 'doughnut' } },
+      scales: type === 'doughnut' ? {} : {
+        y: { beginAtZero:true, max: opts.max||undefined,
+             ticks: { callback: v => opts.suffix ? v+opts.suffix : v } }
+      }
+    }
+  });
+}
+
+function renderReporteTable(headers, rows, titulo, total) {
+  document.getElementById('reporteResultTitle').textContent = titulo;
+  document.getElementById('reporteResultCount').textContent = `${total} resultado${total!==1?'s':''}`;
+  document.getElementById('reporteTableHead').innerHTML = `<tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr>`;
+  document.getElementById('reporteTableBody').innerHTML = rows.length
+    ? rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')
+    : `<tr><td colspan="${headers.length}" class="empty-state">Sin resultados</td></tr>`;
+  document.getElementById('reporteResultCard').style.display = '';
+}
+
+// ── EXPORTACIÓN ───────────────────────────────────────────────────
+function exportReporteCSV() {
+  if (!reporteData.length) return;
+  const headers = document.querySelectorAll('#reporteTableHead th');
+  const rows    = document.querySelectorAll('#reporteTableBody tr');
+  const escape  = v => `"${(v?.textContent||v||'').replace(/"/g,'""')}"`;
+
+  const csvHeaders = [...headers].map(h => escape(h)).join(',');
+  const csvRows = [...rows].map(tr =>
+    [...tr.querySelectorAll('td')].map(td => escape(td)).join(',')
+  ).join('\n');
+
+  const csv = '\uFEFF' + csvHeaders + '\n' + csvRows; // BOM for Excel
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `TrazApp_Reporte_${reporteTipo}_${new Date().toISOString().slice(0,10)}.csv`;
+  link.click();
+}
+
+function exportReportePDF() {
+  window.print();
+}
+
 
 </script>
 
