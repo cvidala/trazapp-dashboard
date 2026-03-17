@@ -3344,7 +3344,7 @@ async function loadReglas() {
     '<tr><td colspan="5" class="empty-state">Cargando...</td></tr>';
 
   const [{ data: catalogo }, { data: reglas }] = await Promise.all([
-    sb.from('catalogo_epp').select('epp_id, nombre, codigo, vida_util_dias').eq('activo', true).order('nombre'),
+    sb.from('catalogo_epp').select('epp_id, nombre, codigo, vida_util_dias, activo').order('nombre'),
     sb.from('obra_epp_reglas').select('epp_id, nivel').eq('obra_id', obraId)
   ]);
 
@@ -3352,12 +3352,13 @@ async function loadReglas() {
   const reglaMap = {};
   for (const r of (reglas||[])) reglaMap[r.epp_id] = r.nivel || 'OBLIGATORIO';
 
-  const obligatorios = (catalogo||[]).filter(e => reglaMap[e.epp_id] === 'OBLIGATORIO').length;
-  const advertencia  = (catalogo||[]).filter(e => reglaMap[e.epp_id] === 'ADVERTENCIA').length;
+  const obligatorios = catalogoActivo.filter(e => reglaMap[e.epp_id] === 'OBLIGATORIO').length;
+  const advertencia  = catalogoActivo.filter(e => reglaMap[e.epp_id] === 'ADVERTENCIA').length;
   document.getElementById('reglaObraStats').textContent =
-    `${obligatorios} obligatorios · ${advertencia} de advertencia · ${(catalogo||[]).length - obligatorios - advertencia} no aplican`;
+    `${obligatorios} obligatorios · ${advertencia} de advertencia · ${catalogoActivo.length - obligatorios - advertencia} no aplican`;
 
-  document.getElementById('reglasTableBody').innerHTML = (catalogo||[]).map(epp => {
+  const catalogoActivo = (catalogo||[]).filter(e => e.activo !== false);
+  document.getElementById('reglasTableBody').innerHTML = catalogoActivo.map(epp => {
     const nivel  = reglaMap[epp.epp_id] || 'NO_APLICA';
     const vidaUt = epp.vida_util_dias ? `${epp.vida_util_dias} días` : '—';
     const badge  = nivel === 'OBLIGATORIO'
@@ -3396,25 +3397,22 @@ async function loadReglas() {
 
 async function setRegla(obraId, eppId, nivel) {
   if (nivel === 'NO_APLICA') {
-    await sb.from('obra_epp_reglas').delete().eq('obra_id', obraId).eq('epp_id', eppId);
+    const { error } = await sb.from('obra_epp_reglas').delete()
+      .eq('obra_id', obraId).eq('epp_id', eppId);
+    if (error) { alert('Error: ' + error.message); return; }
   } else {
-    // Upsert — insert or update if exists
-    // First check if nivel column exists; if not, just use insert/delete pattern
-    const { error } = await sb.from('obra_epp_reglas')
+    // Try with nivel column first, fallback to without
+    let { error } = await sb.from('obra_epp_reglas')
       .upsert({ obra_id: obraId, epp_id: eppId, nivel }, { onConflict: 'obra_id,epp_id' });
-    if (error) {
-      // Fallback: tabla sin columna nivel — solo marcar/desmarcar
-      if (error.message.includes('nivel')) {
-        if (nivel === 'OBLIGATORIO') {
-          await sb.from('obra_epp_reglas').upsert({ obra_id: obraId, epp_id: eppId }, { onConflict: 'obra_id,epp_id' });
-        }
-      } else {
-        console.error('setRegla error:', error.message);
-        return;
-      }
+    if (error && error.message && error.message.includes('nivel')) {
+      // Table doesn't have nivel column yet — insert without it
+      const res = await sb.from('obra_epp_reglas')
+        .upsert({ obra_id: obraId, epp_id: eppId }, { onConflict: 'obra_id,epp_id' });
+      if (res.error) { alert('Error: ' + res.error.message); return; }
+    } else if (error) {
+      alert('Error al guardar regla: ' + error.message); return;
     }
   }
-  // Re-render without full reload for instant feedback
   await loadReglas();
 }
 
