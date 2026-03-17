@@ -346,6 +346,7 @@
         <span class="nav-badge" id="alertBadge" style="display:none">0</span>
       </div>
       <div class="nav-item" data-page="centros" onclick="navTo('centros')"><span class="nav-icon">🏗️</span> Centros de Costo</div>
+      <div class="nav-item" data-page="reglas" onclick="navTo('reglas')"><span class="nav-icon">⚙️</span> Reglas EPP</div>
     </div>
     <!-- ADMIN ONLY SECTION -->
     <div class="sidebar-section" id="adminSection" style="display:none">
@@ -710,6 +711,56 @@
           <div style="font-size:48px;margin-bottom:16px">📊</div>
           <div style="font-size:16px;font-weight:600;color:var(--navy);margin-bottom:8px">Configura y genera tu reporte</div>
           <div style="font-size:13px">Selecciona el tipo de reporte, ajusta los filtros y presiona <strong>Generar Reporte</strong></div>
+        </div>
+      </div>
+
+
+      <!-- PAGE: REGLAS EPP -->
+      <div class="page" id="page-reglas">
+        <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
+          <div>
+            <div class="page-title">⚙️ Reglas EPP por Centro</div>
+            <div class="page-sub">Define qué EPP son obligatorios o de advertencia en cada obra</div>
+          </div>
+        </div>
+
+        <!-- Selector de obra -->
+        <div class="card" style="margin-bottom:16px;padding:16px 20px">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <label style="font-weight:600;font-size:13px;color:var(--navy)">Centro de Costo:</label>
+            <select class="form-select" id="reglaObraSelect" onchange="loadReglas()" style="min-width:220px">
+              <option value="">Seleccionar centro...</option>
+            </select>
+            <div id="reglaObraStats" style="font-size:12px;color:var(--muted)"></div>
+          </div>
+        </div>
+
+        <!-- Tabla de reglas -->
+        <div class="card" id="reglasCatalogCard" style="display:none">
+          <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+            <div style="font-weight:700;font-size:13px;color:var(--navy)">Catálogo EPP</div>
+            <div style="font-size:11px;color:var(--muted)">Configura el nivel de exigencia por EPP</div>
+          </div>
+          <div class="table-wrap">
+            <table class="full-table">
+              <thead>
+                <tr>
+                  <th>EPP</th>
+                  <th>Código</th>
+                  <th>Vida útil</th>
+                  <th style="text-align:center">Nivel de Exigencia</th>
+                  <th style="text-align:center">Estado actual</th>
+                </tr>
+              </thead>
+              <tbody id="reglasTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="reglasEmpty" style="text-align:center;padding:60px 20px;color:var(--muted)">
+          <div style="font-size:48px;margin-bottom:16px">⚙️</div>
+          <div style="font-size:15px;font-weight:600;color:var(--navy);margin-bottom:8px">Selecciona un centro de costo</div>
+          <div style="font-size:13px">Podrás definir qué EPP son obligatorios, de advertencia o no aplican</div>
         </div>
       </div>
 
@@ -1494,6 +1545,7 @@ const PAGE_TITLES = {
   entregas: '📋 Historial de Entregas',
   alertas: '⚠️ Alertas EPP',
   centros: '🏗️ Centros de Costo',
+  reglas:  '⚙️ Reglas EPP por Centro',
   reportes: '📊 Reportes',
   usuarios: '👤 Usuarios',
 };
@@ -1522,6 +1574,7 @@ function navTo(page) {
   if (page === 'alertas'      && allAlertas.length === 0)      loadPageAlertas();
   if (page === 'centros'      && allCentros.length === 0)      loadPageCentros();
   if (page === 'reportes')    initPageReportes();
+  if (page === 'reglas')      initPageReglas();
 
   // Re-populate if switching back
   if (page === 'trabajadores' && allTrabajadores.length > 0) renderTrabajadoresPage(allTrabajadores);
@@ -1889,15 +1942,15 @@ async function openEntregaModal(eventId) {
       </div>
       <div style="font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px">EPP Entregado</div>
       ${eppItems || '<div style="color:var(--muted);font-size:13px">Sin ítems registrados</div>'}
-      ${(e.foto_url||e.foto_evidencia_url||e.evidencia_url) ? `
+      ${e.evidencia_foto_url ? `
         <div style="margin-top:16px">
           <div style="font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px">📷 Foto Evidencia</div>
-          <img src="${e.foto_url||e.foto_evidencia_url||e.evidencia_url}" style="width:100%;border-radius:10px;max-height:220px;object-fit:cover;border:1px solid var(--border)">
+          <img src="${e.evidencia_foto_url}" style="width:100%;border-radius:10px;max-height:220px;object-fit:cover;border:1px solid var(--border)">
         </div>` : ''}
-      ${(e.firma_url||e.firma_digital_url||e.firma) ? `
+      ${e.firma_url ? `
         <div style="margin-top:12px">
           <div style="font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px">✍️ Firma Trabajador</div>
-          <img src="${e.firma_url||e.firma_digital_url||e.firma}" style="max-width:100%;border-radius:10px;max-height:150px;object-fit:contain;background:white;border:1px solid var(--border);padding:8px">
+          <img src="${e.firma_url}" style="max-width:100%;border-radius:10px;max-height:150px;object-fit:contain;background:white;border:1px solid var(--border);padding:8px">
         </div>` : ''}
     `;
   } catch(err) {
@@ -3262,6 +3315,109 @@ function exportReporteCSV() {
   link.download = `TrazApp_Reporte_${reporteTipo}_${new Date().toISOString().slice(0,10)}.csv`;
   link.click();
 }
+
+
+// ═══════════════════════════════════════════════════════════════
+// REGLAS EPP POR CENTRO
+// Tabla obra_epp_reglas: obra_id, epp_id, nivel ('OBLIGATORIO'|'ADVERTENCIA')
+// Si no existe fila → NO_APLICA
+// ═══════════════════════════════════════════════════════════════
+
+async function initPageReglas() {
+  const sel = document.getElementById('reglaObraSelect');
+  if (sel.options.length <= 1) {
+    const { data: obras } = await sb.from('obras').select('obra_id, nombre').eq('estado','ACTIVA').order('nombre');
+    sel.innerHTML = '<option value="">Seleccionar centro...</option>' +
+      (obras||[]).map(o => `<option value="${o.obra_id}">${o.nombre}</option>`).join('');
+  }
+}
+
+async function loadReglas() {
+  const obraId = document.getElementById('reglaObraSelect').value;
+  const card   = document.getElementById('reglasCatalogCard');
+  const empty  = document.getElementById('reglasEmpty');
+
+  if (!obraId) { card.style.display='none'; empty.style.display=''; return; }
+
+  card.style.display=''; empty.style.display='none';
+  document.getElementById('reglasTableBody').innerHTML =
+    '<tr><td colspan="5" class="empty-state">Cargando...</td></tr>';
+
+  const [{ data: catalogo }, { data: reglas }] = await Promise.all([
+    sb.from('catalogo_epp').select('epp_id, nombre, codigo, vida_util_dias').eq('activo', true).order('nombre'),
+    sb.from('obra_epp_reglas').select('epp_id, nivel').eq('obra_id', obraId)
+  ]);
+
+  // Build reglas map
+  const reglaMap = {};
+  for (const r of (reglas||[])) reglaMap[r.epp_id] = r.nivel || 'OBLIGATORIO';
+
+  const obligatorios = (catalogo||[]).filter(e => reglaMap[e.epp_id] === 'OBLIGATORIO').length;
+  const advertencia  = (catalogo||[]).filter(e => reglaMap[e.epp_id] === 'ADVERTENCIA').length;
+  document.getElementById('reglaObraStats').textContent =
+    `${obligatorios} obligatorios · ${advertencia} de advertencia · ${(catalogo||[]).length - obligatorios - advertencia} no aplican`;
+
+  document.getElementById('reglasTableBody').innerHTML = (catalogo||[]).map(epp => {
+    const nivel  = reglaMap[epp.epp_id] || 'NO_APLICA';
+    const vidaUt = epp.vida_util_dias ? `${epp.vida_util_dias} días` : '—';
+    const badge  = nivel === 'OBLIGATORIO'
+      ? '<span class="badge danger" style="background:#fee2e2;color:#b91c1c">🚨 Obligatorio</span>'
+      : nivel === 'ADVERTENCIA'
+      ? '<span class="badge warn">⚠️ Advertencia</span>'
+      : '<span class="badge pending">— No aplica</span>';
+
+    return `<tr>
+      <td><span style="font-weight:600;color:var(--navy)">${epp.nombre}</span></td>
+      <td><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">${epp.codigo||'—'}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${vidaUt}</td>
+      <td style="text-align:center">
+        <div style="display:inline-flex;gap:4px;background:var(--bg);border-radius:20px;padding:3px">
+          <button onclick="setRegla('${obraId}','${epp.epp_id}','OBLIGATORIO')"
+            style="border:none;cursor:pointer;padding:5px 12px;border-radius:16px;font-size:11px;font-weight:600;transition:all 0.15s;
+            ${nivel==='OBLIGATORIO' ? 'background:#fee2e2;color:#b91c1c' : 'background:transparent;color:var(--muted)'}">
+            🚨 Obligatorio
+          </button>
+          <button onclick="setRegla('${obraId}','${epp.epp_id}','ADVERTENCIA')"
+            style="border:none;cursor:pointer;padding:5px 12px;border-radius:16px;font-size:11px;font-weight:600;transition:all 0.15s;
+            ${nivel==='ADVERTENCIA' ? 'background:#fef9c3;color:#a16207' : 'background:transparent;color:var(--muted)'}">
+            ⚠️ Advertencia
+          </button>
+          <button onclick="setRegla('${obraId}','${epp.epp_id}','NO_APLICA')"
+            style="border:none;cursor:pointer;padding:5px 12px;border-radius:16px;font-size:11px;font-weight:600;transition:all 0.15s;
+            ${nivel==='NO_APLICA' ? 'background:white;color:var(--navy);box-shadow:0 1px 4px rgba(0,0,0,0.1)' : 'background:transparent;color:var(--muted)'}">
+            — No aplica
+          </button>
+        </div>
+      </td>
+      <td style="text-align:center">${badge}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function setRegla(obraId, eppId, nivel) {
+  if (nivel === 'NO_APLICA') {
+    await sb.from('obra_epp_reglas').delete().eq('obra_id', obraId).eq('epp_id', eppId);
+  } else {
+    // Upsert — insert or update if exists
+    // First check if nivel column exists; if not, just use insert/delete pattern
+    const { error } = await sb.from('obra_epp_reglas')
+      .upsert({ obra_id: obraId, epp_id: eppId, nivel }, { onConflict: 'obra_id,epp_id' });
+    if (error) {
+      // Fallback: tabla sin columna nivel — solo marcar/desmarcar
+      if (error.message.includes('nivel')) {
+        if (nivel === 'OBLIGATORIO') {
+          await sb.from('obra_epp_reglas').upsert({ obra_id: obraId, epp_id: eppId }, { onConflict: 'obra_id,epp_id' });
+        }
+      } else {
+        console.error('setRegla error:', error.message);
+        return;
+      }
+    }
+  }
+  // Re-render without full reload for instant feedback
+  await loadReglas();
+}
+
 
 </script>
 </body>
