@@ -810,7 +810,7 @@
       <div class="form-group" style="margin:0">
         <label class="form-label">Agregar centro</label>
         <div style="display:flex;gap:8px">
-          <select class="form-select" id="asignarCentroSelect" style="flex:1">
+          <select class="form-select" id="asignarObraSelect" style="flex:1">
             <option value="">Seleccionar...</option>
           </select>
           <button class="btn btn-primary btn-sm" onclick="addCentroATrabajador()">+ Agregar</button>
@@ -899,7 +899,7 @@
 
 <!-- ═══ MODAL: ASIGNAR SUPERVISOR ═══ -->
 <div class="modal-bg" id="modalAsignarSupervisor">
-  <div class="modal" style="max-width:560px">
+  <div class="modal" style="max-width:600px">
     <div class="modal-header">
       <div>
         <div class="modal-title" id="modalSupTitle">Gestionar Centro</div>
@@ -909,14 +909,24 @@
     </div>
     <div class="modal-body">
       <input type="hidden" id="modalSupObraId">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <!-- Supervisores -->
         <div>
-          <div style="font-weight:700;font-size:12px;color:var(--navy);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Supervisores asignados</div>
-          <div id="supAsignadosList"></div>
+          <div style="font-weight:700;font-size:11px;color:var(--navy);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">👷 Supervisores</div>
+          <div id="supAsignadosList" style="min-height:32px;margin-bottom:10px"></div>
+          <div style="display:flex;gap:6px">
+            <select class="form-select" id="supSelect" style="flex:1;font-size:12px"></select>
+            <button class="btn btn-primary btn-sm" onclick="asignarSupervisor()">+ Asignar</button>
+          </div>
         </div>
+        <!-- Trabajadores -->
         <div>
-          <div style="font-weight:700;font-size:12px;color:var(--navy);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Trabajadores asignados</div>
-          <div id="centroTrabList"></div>
+          <div style="font-weight:700;font-size:11px;color:var(--navy);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">🧑‍🔧 Trabajadores</div>
+          <div id="centroTrabList" style="min-height:32px;margin-bottom:10px"></div>
+          <div style="display:flex;gap:6px">
+            <select class="form-select" id="centroTrabSelect" style="flex:1;font-size:12px"></select>
+            <button class="btn btn-primary btn-sm" onclick="asignarTrabajadorACentro()">+ Asignar</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1879,7 +1889,16 @@ async function openEntregaModal(eventId) {
       </div>
       <div style="font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px">EPP Entregado</div>
       ${eppItems || '<div style="color:var(--muted);font-size:13px">Sin ítems registrados</div>'}
-      ${e.foto_url ? `<div style="margin-top:16px"><img src="${e.foto_url}" style="width:100%;border-radius:10px;max-height:200px;object-fit:cover"></div>` : ''}
+      ${(e.foto_url||e.foto_evidencia_url||e.evidencia_url) ? `
+        <div style="margin-top:16px">
+          <div style="font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px">📷 Foto Evidencia</div>
+          <img src="${e.foto_url||e.foto_evidencia_url||e.evidencia_url}" style="width:100%;border-radius:10px;max-height:220px;object-fit:cover;border:1px solid var(--border)">
+        </div>` : ''}
+      ${(e.firma_url||e.firma_digital_url||e.firma) ? `
+        <div style="margin-top:12px">
+          <div style="font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px">✍️ Firma Trabajador</div>
+          <img src="${e.firma_url||e.firma_digital_url||e.firma}" style="max-width:100%;border-radius:10px;max-height:150px;object-fit:contain;background:white;border:1px solid var(--border);padding:8px">
+        </div>` : ''}
     `;
   } catch(err) {
     bodyEl.innerHTML = `<div class="empty-state">Error: ${err.message}</div>`;
@@ -2111,6 +2130,21 @@ async function asignarCentro() {
   renderCentrosAsignados(asignados||[], trabId);
   loadPageTrabajadores();
 }
+
+async function addCentroATrabajador() {
+  const trabId = document.getElementById('asignarTrabId').value;
+  const obraId = document.getElementById('asignarObraSelect').value;
+  if (!obraId) return;
+  const { error } = await sb.from('trabajador_obras').upsert({ trabajador_id: trabId, obra_id: obraId });
+  if (error) { alert('Error: ' + error.message); return; }
+  // Refresh
+  const { data: asignados } = await sb.from('trabajador_obras').select('obra_id, obras(nombre)').eq('trabajador_id', trabId);
+  const { data: obras } = await sb.from('obras').select('obra_id, nombre').eq('estado','ACTIVA');
+  const asignadosSet = new Set((asignados||[]).map(a => a.obra_id));
+  document.getElementById('asignarObraSelect').innerHTML = (obras||[]).filter(o => !asignadosSet.has(o.obra_id)).map(o => `<option value="${o.obra_id}">${o.nombre}</option>`).join('');
+  renderCentrosAsignados(asignados||[], trabId);
+}
+
 
 async function desasignarCentro(trabId, obraId) {
   if (!confirm('¿Quitar este centro de costo al trabajador?')) return;
