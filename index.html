@@ -3345,8 +3345,12 @@ async function loadReglas() {
 
   // Fetch catalogo and reglas separately to handle missing 'nivel' column gracefully
   const { data: catalogo, error: catError } = await sb.from('catalogo_epp')
-    .select('epp_id, nombre, codigo, vida_util_dias').order('nombre');
-  console.log('catalogo_epp result:', catalogo?.length, catError?.message);
+    .select('epp_id, nombre, codigo').order('nombre');
+  if (catError) {
+    document.getElementById('reglasTableBody').innerHTML =
+      `<tr><td colspan="5" class="empty-state">Error: ${catError.message}</td></tr>`;
+    return;
+  }
 
   // Try with nivel, fallback without it
   let reglas = [];
@@ -3382,7 +3386,7 @@ async function loadReglas() {
 
   document.getElementById('reglasTableBody').innerHTML = catalogoActivo.map(epp => {
     const nivel  = reglaMap[epp.epp_id] || 'NO_APLICA';
-    const vidaUt = epp.vida_util_dias ? `${epp.vida_util_dias} días` : '—';
+    const vidaUt = '—';
     const badge  = nivel === 'OBLIGATORIO'
       ? '<span class="badge danger" style="background:#fee2e2;color:#b91c1c">🚨 Obligatorio</span>'
       : nivel === 'ADVERTENCIA'
