@@ -797,18 +797,25 @@
 <div class="modal-bg" id="modalAsignarCentro">
   <div class="modal" style="max-width:500px">
     <div class="modal-header">
-      <div class="modal-title" id="modalAsignarCentroTitle">Centros de Costo</div>
+      <div>
+        <div class="modal-title">Centros de Costo</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px" id="modalAsignarCentroSub"></div>
+      </div>
       <button class="modal-close" onclick="closeModal('modalAsignarCentro')">✕</button>
     </div>
     <div class="modal-body">
-      <div id="asignarCentroChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
-      <div class="form-group">
+      <input type="hidden" id="asignarTrabId">
+      <div style="font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px">Centros asignados</div>
+      <div id="centrosAsignadosList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;min-height:32px"></div>
+      <div class="form-group" style="margin:0">
         <label class="form-label">Agregar centro</label>
-        <select class="form-select" id="asignarCentroSelect">
-          <option value="">Seleccionar...</option>
-        </select>
+        <div style="display:flex;gap:8px">
+          <select class="form-select" id="asignarCentroSelect" style="flex:1">
+            <option value="">Seleccionar...</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="addCentroATrabajador()">+ Agregar</button>
+        </div>
       </div>
-      <button class="btn btn-primary btn-sm" onclick="addCentroATrabajador()" style="margin-top:4px">+ Agregar</button>
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary" onclick="closeModal('modalAsignarCentro');loadPageTrabajadores()">Cerrar</button>
@@ -1828,111 +1835,58 @@ function filterEntregas() {
 }
 
 async function openEntregaModal(eventId) {
-  document.getElementById('modalEntregaDetalleBody').innerHTML = '<div class="empty-state">Cargando...</div>';
+  const bodyEl = document.getElementById('modalEntregaDetalleBody');
+  bodyEl.innerHTML = '<div class="empty-state">Cargando...</div>';
   document.getElementById('modalEntregaDetalle').classList.add('open');
 
-  const { data: e } = await sb.from('entregas_epp')
-    .select('*, trabajadores(nombre,rut), obras(nombre)')
-    .eq('event_id', eventId).maybeSingle();
-  if (!e) { document.getElementById('modalEntregaDetalleBody').innerHTML = '<div class="empty-state">No encontrado</div>'; return; }
+  try {
+    const [{ data: e }, { data: catalogo }] = await Promise.all([
+      sb.from('entregas_epp').select('*, trabajadores(nombre,rut), obras(nombre)').eq('event_id', eventId).maybeSingle(),
+      sb.from('catalogo_epp').select('epp_id, nombre, codigo')
+    ]);
+    if (!e) { bodyEl.innerHTML = '<div class="empty-state">No encontrado</div>'; return; }
 
-  const { data: catalogo } = await sb.from('catalogo_epp').select('epp_id, nombre, codigo');
-  const catMap = {};
-  for (const c of (catalogo||[])) catMap[c.epp_id] = c;
+    const catMap = {};
+    for (const c of (catalogo||[])) catMap[c.epp_id] = c;
+    const eppIcons = {CASCO:'🪖',CHALECO:'🦺',LENTES:'🥽',GUANTES:'🧤',BOTAS:'👢','ARNÉS':'🪝',MASCARILLA:'😷'};
+    const tipo  = e.validacion_tipo==='OFFLINE_SYNC'?'📴 Offline':e.validacion_tipo==='FIRMA_DIGITAL'?'✍️ Firma Digital':'🌐 Online';
+    const fecha = new Date(e.created_at).toLocaleString('es-CL',{dateStyle:'long',timeStyle:'short'});
+    const eppItems = (e.items||[]).map(it => {
+      const cat = catMap[it.epp_id]||{};
+      const icon = eppIcons[(cat.codigo||'').toUpperCase()]||'📦';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:20px">${icon}</span>
+        <span style="font-weight:600;color:var(--navy)">${cat.nombre||'EPP'}</span>
+        <span style="margin-left:auto;background:var(--bg);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700">x${it.cantidad||1}</span>
+      </div>`;
+    }).join('');
 
-  const tipo = e.validacion_tipo === 'OFFLINE_SYNC' ? '📴 Offline Sync' : e.validacion_tipo === 'FIRMA_DIGITAL' ? '✍️ Firma Digital' : '🌐 Online';
-  const fecha = new Date(e.created_at).toLocaleString('es-CL', {dateStyle:'long', timeStyle:'short'});
-
-  document.getElementById('modalDetalleTitulo').textContent = `Entrega #${e.event_id.slice(-8).toUpperCase()}`;
-  document.getElementById('modalDetalleSub').textContent = `${e.trabajadores?.nombre||'—'} · ${e.obras?.nombre||'—'}`;
-
-  const eppList = (e.items||[]).map(it => {
-    const cat = catMap[it.epp_id] || {};
-    const eppIcons = {CASCO:'🪖',CHALECO:'🦺',LENTES:'🥽',GUANTES:'🧤',BOTAS:'👢',ARNÉS:'🪝',MASCARILLA:'😷'};
-    const icon = eppIcons[(cat.codigo||'').toUpperCase()] || '📦';
-    return `<div class="epp-item">
-      <div style="font-size:22px">${icon}</div>
-      <div style="flex:1"><div class="epp-item-name">${cat.nombre||'EPP'}</div><div style="font-size:11px;color:var(--muted)">${cat.codigo||it.epp_id}</div></div>
-      <div style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--navy)">×${it.cantidad}</div>
-    </div>`;
-  }).join('') || '<div class="empty-state">Sin items</div>';
-
-  document.getElementById('modalEntregaDetalleBody').innerHTML = `
-    <!-- ID Registro destacado -->
-    <div style="background:var(--navy);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;">
-      <div>
-        <div style="font-size:10px;color:rgba(255,255,255,0.5);font-weight:700;letter-spacing:1px;text-transform:uppercase;">N° de Registro</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:white;letter-spacing:1px;">${e.event_id}</div>
+    bodyEl.innerHTML = `
+      <div style="background:var(--navy);color:white;border-radius:12px;padding:16px 20px;margin-bottom:16px">
+        <div style="font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace">#${e.event_id.slice(-8).toUpperCase()}</div>
+        <div style="font-size:12px;opacity:0.7;margin-top:4px">${fecha} · ${tipo}</div>
       </div>
-      <span style="background:rgba(255,255,255,0.1);color:white;font-size:12px;font-weight:600;padding:6px 14px;border-radius:20px;">${tipo}</span>
-    </div>
-
-    <!-- Grid info -->
-    <div class="entrega-detail-grid">
-      <div class="detail-card">
-        <div class="detail-card-label">👷 Trabajador</div>
-        <div class="detail-card-value">${e.trabajadores?.nombre||'—'}</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);margin-top:2px">${e.trabajadores?.rut||''}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div style="background:var(--bg);border-radius:10px;padding:12px">
+          <div style="font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:4px">Trabajador</div>
+          <div style="font-weight:700;color:var(--navy)">${e.trabajadores?.nombre||'—'}</div>
+          <div style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace">${e.trabajadores?.rut||'—'}</div>
+        </div>
+        <div style="background:var(--bg);border-radius:10px;padding:12px">
+          <div style="font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:4px">Centro de Costo</div>
+          <div style="font-weight:700;color:var(--navy)">${e.obras?.nombre||'—'}</div>
+        </div>
       </div>
-      <div class="detail-card">
-        <div class="detail-card-label">🏗️ Centro de Costo</div>
-        <div class="detail-card-value">${e.obras?.nombre||'—'}</div>
-      </div>
-      <div class="detail-card">
-        <div class="detail-card-label">📅 Fecha y hora</div>
-        <div class="detail-card-value" style="font-size:13px">${fecha}</div>
-      </div>
-      <div class="detail-card">
-        <div class="detail-card-label">✅ Validación</div>
-        <div class="detail-card-value">${tipo}</div>
-      </div>
-    </div>
-
-    <!-- EPP -->
-    <div class="modal-section">
-      <div class="modal-section-title">EPP Entregado</div>
-      ${eppList}
-    </div>
-
-    <!-- Evidencias -->
-    ${e.evidencia_foto_url || e.firma_url ? `
-    <div class="modal-section">
-      <div class="modal-section-title">Evidencias</div>
-      <div class="evidence-grid">
-        ${e.evidencia_foto_url ? `
-        <div class="evidence-box">
-          <div class="evidence-box-label">📷 Fotografía</div>
-          <a href="${e.evidencia_foto_url}" target="_blank">
-            <img src="${e.evidencia_foto_url}" alt="Evidencia foto">
-          </a>
-        </div>` : ''}
-        ${e.firma_url ? `
-        <div class="evidence-box">
-          <div class="evidence-box-label">✍️ Firma Digital</div>
-          <a href="${e.firma_url}" target="_blank">
-            <img src="${e.firma_url}" alt="Firma" style="background:white;padding:8px;object-fit:contain;">
-          </a>
-        </div>` : ''}
-      </div>
-    </div>` : ''}
-
-    <!-- Hash integridad -->
-    ${e.evidencia_hash ? `
-    <div class="modal-section">
-      <div class="modal-section-title">🔒 Hash de Integridad</div>
-      <div class="hash-box">${e.evidencia_hash}</div>
-    </div>` : ''}
-
-    <!-- Declaración -->
-    ${e.declaracion_text ? `
-    <div class="modal-section">
-      <div class="modal-section-title">📄 Declaración</div>
-      <div style="font-size:12px;color:var(--muted);line-height:1.6;background:var(--bg);padding:14px;border-radius:10px;">${e.declaracion_text}</div>
-    </div>` : ''}
-  `;
+      <div style="font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px">EPP Entregado</div>
+      ${eppItems || '<div style="color:var(--muted);font-size:13px">Sin ítems registrados</div>'}
+      ${e.foto_url ? `<div style="margin-top:16px"><img src="${e.foto_url}" style="width:100%;border-radius:10px;max-height:200px;object-fit:cover"></div>` : ''}
+    `;
+  } catch(err) {
+    bodyEl.innerHTML = `<div class="empty-state">Error: ${err.message}</div>`;
+  }
 }
 
-// ── PAGE: ALERTAS ─────────────────────────────────────────────────
+
 async function loadPageAlertas() {
   document.getElementById('alertasPageList').innerHTML = '<div class="empty-state">Cargando...</div>';
   showLoading(true);
@@ -1966,8 +1920,10 @@ function renderAlertasPage(data) {
   // Populate centro filter
   const centroSel = document.getElementById('alertasCentroFilter');
   if (centroSel && centroSel.options.length <= 1) {
-    const centros = [...new Set((data||[]).map(a => a.cc).filter(Boolean))].sort();
-    centros.forEach(c => { const o = document.createElement('option'); o.value=c; o.textContent=c; centroSel.appendChild(o); });
+    // Load all obras so filter shows all centres even without alerts
+    sb.from('obras').select('nombre').eq('estado','ACTIVA').order('nombre').then(({data:obras}) => {
+      (obras||[]).forEach(o => { const opt = document.createElement('option'); opt.value=o.nombre; opt.textContent=o.nombre; centroSel.appendChild(opt); });
+    });
   }
   // Apply centro filter
   const centroFiltro = centroSel?.value || 'all';
@@ -2225,7 +2181,7 @@ async function saveEntradaStock() {
     const qtySel = row.querySelector('input[type="number"]');
     if (eppSel && qtySel) {
       const qty = parseInt(qtySel.value) || 0;
-      if (eppSel.value && qty > 0) movimientos.push({ bodega_id: bodegaId, epp_id: eppSel.value, tipo: 'ENTRADA', cantidad: qty, descripcion: motivo || 'Entrada manual dashboard' });
+      if (eppSel.value && qty > 0) movimientos.push({ bodega_id: bodegaId, epp_id: eppSel.value, tipo: 'ENTRADA', cantidad: qty });
     }
   });
   if (!movimientos.length) { errEl.textContent = 'Sin cantidades válidas'; errEl.style.display='block'; return; }
