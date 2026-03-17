@@ -563,10 +563,15 @@
           <div class="page-title">⚠️ Alertas EPP</div>
           <div class="page-sub">EPP vencidos, faltantes o por vencer</div>
         </div>
-        <div class="tabs" id="alertasTabs">
-          <div class="tab active" onclick="filterAlertasTipo('all')">Todas</div>
-          <div class="tab" onclick="filterAlertasTipo('danger')">🚨 Críticas</div>
-          <div class="tab" onclick="filterAlertasTipo('warn')">⚠️ Advertencias</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+          <div class="tabs" id="alertasTabs" style="margin-bottom:0">
+            <div class="tab active" onclick="filterAlertasTipo('all')">Todas</div>
+            <div class="tab" onclick="filterAlertasTipo('danger')">🚨 Críticas</div>
+            <div class="tab" onclick="filterAlertasTipo('warn')">⚠️ Advertencias</div>
+          </div>
+          <select class="search-select" id="alertasCentroFilter" onchange="renderAlertasPage(allAlertas)" style="min-width:180px">
+            <option value="all">Todos los centros</option>
+          </select>
         </div>
         <div id="alertasPageList"></div>
       </div>
@@ -752,6 +757,238 @@
     <div id="modalTrabBody"></div>
   </div>
 </div>
+
+<!-- ═══ MODAL: FORMULARIO TRABAJADOR ═══ -->
+<div class="modal-bg" id="modalTrabForm">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTrabFormTitle">Trabajador</div>
+      <button class="modal-close" onclick="closeModal('modalTrabForm')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="trabFormError" class="form-error"></div>
+      <div class="form-group">
+        <label class="form-label">Nombre completo *</label>
+        <input class="form-input" id="trabNombre" placeholder="Juan Pérez">
+      </div>
+      <div class="form-group">
+        <label class="form-label">RUT *</label>
+        <input class="form-input" id="trabRut" placeholder="12.345.678-9">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cargo</label>
+        <input class="form-input" id="trabCargo" placeholder="Operario, Capataz...">
+      </div>
+      <div class="form-group" id="trabCentroGroup">
+        <label class="form-label">Centro de costo inicial</label>
+        <select class="form-select" id="trabCentroInicial">
+          <option value="">Sin asignación</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalTrabForm')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveTrabajador()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: ASIGNAR CENTROS TRABAJADOR ═══ -->
+<div class="modal-bg" id="modalAsignarCentro">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <div class="modal-title" id="modalAsignarCentroTitle">Centros de Costo</div>
+      <button class="modal-close" onclick="closeModal('modalAsignarCentro')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="asignarCentroChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
+      <div class="form-group">
+        <label class="form-label">Agregar centro</label>
+        <select class="form-select" id="asignarCentroSelect">
+          <option value="">Seleccionar...</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="addCentroATrabajador()" style="margin-top:4px">+ Agregar</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeModal('modalAsignarCentro');loadPageTrabajadores()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: DETALLE ENTREGA ═══ -->
+<div class="modal-bg" id="modalEntregaDetalle">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <div class="modal-title">Detalle de Entrega</div>
+      <button class="modal-close" onclick="closeModal('modalEntregaDetalle')">✕</button>
+    </div>
+    <div class="modal-body" id="modalEntregaDetalleBody">Cargando...</div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalEntregaDetalle')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: NUEVO EPP ═══ -->
+<div class="modal-bg" id="modalNuevoEpp">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div class="modal-title">Nuevo EPP en Catálogo</div>
+      <button class="modal-close" onclick="closeModal('modalNuevoEpp')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="eppFormError" class="form-error"></div>
+      <div class="form-group">
+        <label class="form-label">Nombre *</label>
+        <input class="form-input" id="eppNombre" placeholder="Casco de seguridad">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Código / Tipo</label>
+        <input class="form-input" id="eppCodigo" placeholder="CASCO, GUANTES...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Categoría</label>
+        <input class="form-input" id="eppCategoria" placeholder="Cabeza, Manos...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Vida útil (días)</label>
+        <input class="form-input" type="number" id="eppVidaUtil" placeholder="365">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalNuevoEpp')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveNuevoEpp()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: ENTRADA DE STOCK ═══ -->
+<div class="modal-bg" id="modalEntradaStock">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title">📥 Entrada de Stock</div>
+      <button class="modal-close" onclick="closeModal('modalEntradaStock')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="stockFormError" class="form-error"></div>
+      <div class="form-group">
+        <label class="form-label">Bodega destino *</label>
+        <select class="form-select" id="stockBodegaSelect"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Motivo / Referencia</label>
+        <input class="form-input" id="stockMotivo" placeholder="Compra, donación, traslado...">
+      </div>
+      <div id="stockEntryRows" style="margin-top:8px"></div>
+      <button class="btn btn-secondary btn-sm" onclick="addStockRow()" style="margin-top:8px">+ Agregar EPP</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalEntradaStock')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEntradaStock()">Guardar Entrada</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: ASIGNAR SUPERVISOR ═══ -->
+<div class="modal-bg" id="modalAsignarSupervisor">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modalSupTitle">Gestionar Centro</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px" id="modalSupSub"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modalAsignarSupervisor')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="modalSupObraId">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div style="font-weight:700;font-size:12px;color:var(--navy);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Supervisores asignados</div>
+          <div id="supAsignadosList"></div>
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:12px;color:var(--navy);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Trabajadores asignados</div>
+          <div id="centroTrabList"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeModal('modalAsignarSupervisor');loadPageCentros()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: FORMULARIO CENTRO ═══ -->
+<div class="modal-bg" id="modalCentroForm">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div class="modal-title" id="modalCentroTitle">Centro de Costo</div>
+      <button class="modal-close" onclick="closeModal('modalCentroForm')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="centroFormError" class="form-error"></div>
+      <input type="hidden" id="centroEditId">
+      <div class="form-group">
+        <label class="form-label">Nombre *</label>
+        <input class="form-input" id="centroNombre" placeholder="Obra Las Araucarias">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Dirección</label>
+        <input class="form-input" id="centroDireccion" placeholder="Av. Principal 123">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Estado</label>
+        <select class="form-select" id="centroEstado">
+          <option value="ACTIVA">Activa</option>
+          <option value="INACTIVA">Inactiva</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalCentroForm')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCentro()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: NUEVO USUARIO ═══ -->
+<div class="modal-bg" id="modalNuevoUsuario">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div class="modal-title">Nuevo Usuario</div>
+      <button class="modal-close" onclick="closeModal('modalNuevoUsuario')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="usuarioFormError" class="form-error"></div>
+      <div class="form-group">
+        <label class="form-label">Nombre *</label>
+        <input class="form-input" id="usuarioNombre" placeholder="Juan Pérez">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email *</label>
+        <input class="form-input" type="email" id="usuarioEmail" placeholder="juan@empresa.cl">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contraseña temporal *</label>
+        <input class="form-input" type="password" id="usuarioPassword" placeholder="Mínimo 8 caracteres">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Rol</label>
+        <select class="form-select" id="usuarioRol">
+          <option value="SUPERVISOR">Supervisor</option>
+          <option value="ADMIN">Administrador</option>
+          <option value="READONLY">Solo lectura</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalNuevoUsuario')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveNuevoUsuario()">Crear Usuario</button>
+    </div>
+  </div>
+</div>
+
 
 <script>
 const SUPABASE_URL = 'https://ppltpmmtdnprgauwnytf.supabase.co';
@@ -963,9 +1200,10 @@ async function loadEntregas(obraId) {
 }
 
 async function loadStock(obraId) {
-  // Usar directamente stock_movimientos (vista stock_actual no existe)
-  return loadStockFallback(obraId);
+  // Stock es por bodega — no filtra por centro de costo
+  return loadStockFallback(null);
 }
+
 
 async function loadStockFallback(obraId) {
   // Calcular stock desde movimientos
@@ -1501,14 +1739,14 @@ function renderStockPage(data) {
         <div class="stock-card-icon">${icon}</div>
         <div style="flex:1">
           <div class="stock-card-name">${cat.nombre || '—'}</div>
-          <div class="stock-card-code">${cat.codigo || '—'} · Total: <span class="stock-bodega-qty ${totalClass}">${totalQty}</span></div>
+          <div class="stock-card-code">${cat.codigo || '—'}</div>
         </div>
         <button class="btn btn-danger btn-sm" title="Eliminar EPP del catálogo" onclick="eliminarEpp('${e.eppId}','${(cat.nombre||'').replace(/'/g,"\'")}')">🗑️</button>
       </div>
       <div class="stock-bodegas">
-        <div class="stock-bodega-row" style="justify-content:center;padding:8px 0;">
-          <div class="stock-bodega-name" style="font-size:13px;color:var(--muted)">Stock total en bodega seleccionada</div>
-          <div class="stock-bodega-qty ${totalClass}" style="font-size:22px;font-weight:800">${totalQty}</div>
+        <div class="stock-bodega-row">
+          <div class="stock-bodega-name">${selectedBodega === 'all' ? 'Total todas las bodegas' : selectedBodega}</div>
+          <div class="stock-bodega-qty ${totalClass}">${totalQty} uds</div>
         </div>
       </div>
     </div>`;
@@ -1590,13 +1828,13 @@ function filterEntregas() {
 }
 
 async function openEntregaModal(eventId) {
-  document.getElementById('modalDetalleBody').innerHTML = '<div class="empty-state">Cargando...</div>';
+  document.getElementById('modalEntregaDetalleBody').innerHTML = '<div class="empty-state">Cargando...</div>';
   document.getElementById('modalEntregaDetalle').classList.add('open');
 
   const { data: e } = await sb.from('entregas_epp')
     .select('*, trabajadores(nombre,rut), obras(nombre)')
     .eq('event_id', eventId).maybeSingle();
-  if (!e) { document.getElementById('modalDetalleBody').innerHTML = '<div class="empty-state">No encontrado</div>'; return; }
+  if (!e) { document.getElementById('modalEntregaDetalleBody').innerHTML = '<div class="empty-state">No encontrado</div>'; return; }
 
   const { data: catalogo } = await sb.from('catalogo_epp').select('epp_id, nombre, codigo');
   const catMap = {};
@@ -1619,7 +1857,7 @@ async function openEntregaModal(eventId) {
     </div>`;
   }).join('') || '<div class="empty-state">Sin items</div>';
 
-  document.getElementById('modalDetalleBody').innerHTML = `
+  document.getElementById('modalEntregaDetalleBody').innerHTML = `
     <!-- ID Registro destacado -->
     <div style="background:var(--navy);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;">
       <div>
@@ -1725,6 +1963,16 @@ async function loadPageAlertas() {
 }
 
 function renderAlertasPage(data) {
+  // Populate centro filter
+  const centroSel = document.getElementById('alertasCentroFilter');
+  if (centroSel && centroSel.options.length <= 1) {
+    const centros = [...new Set((data||[]).map(a => a.cc).filter(Boolean))].sort();
+    centros.forEach(c => { const o = document.createElement('option'); o.value=c; o.textContent=c; centroSel.appendChild(o); });
+  }
+  // Apply centro filter
+  const centroFiltro = centroSel?.value || 'all';
+  if (centroFiltro !== 'all') data = data.filter(a => a.cc === centroFiltro);
+
   const cont = document.getElementById('alertasPageList');
   if (!data.length) { cont.innerHTML = '<div class="card"><div class="card-body"><div class="empty-state">✅ Sin alertas activas</div></div></div>'; return; }
   cont.innerHTML = `<div class="card"><div class="card-body">` +
@@ -1817,7 +2065,7 @@ async function openNuevoTrabajador() {
   document.getElementById('trabFormError').style.display = 'none';
   document.getElementById('trabNombre').dataset.editId = '';
   const { data: obras } = await sb.from('obras').select('obra_id, nombre').eq('estado','ACTIVA');
-  const sel = document.getElementById('trabObraSelect');
+  const sel = document.getElementById('trabCentroInicial');
   sel.innerHTML = (obras||[]).map(o => `<option value="${o.obra_id}">${o.nombre}</option>`).join('');
   document.getElementById('modalTrabForm').classList.add('open');
 }
@@ -1830,7 +2078,7 @@ async function openEditarTrabajador(id, nombre, rut, cargo) {
   document.getElementById('trabFormError').style.display = 'none';
   document.getElementById('trabNombre').dataset.editId = id;
   const { data: obras } = await sb.from('obras').select('obra_id, nombre').eq('estado','ACTIVA');
-  const sel = document.getElementById('trabObraSelect');
+  const sel = document.getElementById('trabCentroInicial');
   sel.innerHTML = (obras||[]).map(o => `<option value="${o.obra_id}">${o.nombre}</option>`).join('');
   document.getElementById('modalTrabForm').classList.add('open');
 }
@@ -1839,7 +2087,7 @@ async function saveTrabajador() {
   const nombre = document.getElementById('trabNombre').value.trim();
   const rut    = document.getElementById('trabRut').value.trim();
   const cargo  = document.getElementById('trabCargo').value.trim();
-  const obraId = document.getElementById('trabObraSelect').value;
+  const obraId = document.getElementById('trabCentroInicial').value;
   const editId = document.getElementById('trabNombre').dataset.editId;
   const errEl  = document.getElementById('trabFormError');
   if (!nombre || !rut) { errEl.textContent = 'Nombre y RUT son obligatorios'; errEl.style.display='block'; return; }
@@ -2111,11 +2359,6 @@ async function openNuevoUsuario() {
   document.getElementById('usuarioRol').value = 'SUPERVISOR';
   document.getElementById('usuarioFormError').style.display = 'none';
 
-  // Load obras for assignment
-  const { data: obras } = await sb.from('obras').select('obra_id, nombre').eq('estado','ACTIVA');
-  const sel = document.getElementById('usuarioCentroSelect');
-  sel.innerHTML = '<option value="">Sin asignación inicial</option>' + (obras||[]).map(o => `<option value="${o.obra_id}">${o.nombre}</option>`).join('');
-
   document.getElementById('modalNuevoUsuario').classList.add('open');
 }
 
@@ -2123,7 +2366,6 @@ async function saveNuevoUsuario() {
   const nombre    = document.getElementById('usuarioNombre').value.trim();
   const email     = document.getElementById('usuarioEmail').value.trim().toLowerCase();
   const rol       = document.getElementById('usuarioRol').value;
-  const obraId    = document.getElementById('usuarioCentroSelect').value;
   const password  = document.getElementById('usuarioPassword').value.trim();
   const errEl     = document.getElementById('usuarioFormError');
 
