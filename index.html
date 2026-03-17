@@ -3364,12 +3364,21 @@ async function loadReglas() {
   const reglaMap = {};
   for (const r of (reglas||[])) reglaMap[r.epp_id] = r.nivel || 'OBLIGATORIO';
 
+  // Filter active EPP (include nulls — activo column may not exist)
+  const catalogoActivo = (catalogo||[]).filter(e => e.activo !== false);
+
+  if (!catalogoActivo.length) {
+    document.getElementById('reglasTableBody').innerHTML =
+      '<tr><td colspan="5" class="empty-state">Sin EPP en el catálogo</td></tr>';
+    document.getElementById('reglaObraStats').textContent = '0 EPP en catálogo';
+    return;
+  }
+
   const obligatorios = catalogoActivo.filter(e => reglaMap[e.epp_id] === 'OBLIGATORIO').length;
   const advertencia  = catalogoActivo.filter(e => reglaMap[e.epp_id] === 'ADVERTENCIA').length;
   document.getElementById('reglaObraStats').textContent =
     `${obligatorios} obligatorios · ${advertencia} de advertencia · ${catalogoActivo.length - obligatorios - advertencia} no aplican`;
 
-  const catalogoActivo = (catalogo||[]).filter(e => e.activo !== false);
   document.getElementById('reglasTableBody').innerHTML = catalogoActivo.map(epp => {
     const nivel  = reglaMap[epp.epp_id] || 'NO_APLICA';
     const vidaUt = epp.vida_util_dias ? `${epp.vida_util_dias} días` : '—';
