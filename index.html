@@ -3343,10 +3343,22 @@ async function loadReglas() {
   document.getElementById('reglasTableBody').innerHTML =
     '<tr><td colspan="5" class="empty-state">Cargando...</td></tr>';
 
-  const [{ data: catalogo }, { data: reglas }] = await Promise.all([
-    sb.from('catalogo_epp').select('epp_id, nombre, codigo, vida_util_dias, activo').order('nombre'),
-    sb.from('obra_epp_reglas').select('epp_id, nivel').eq('obra_id', obraId)
-  ]);
+  // Fetch catalogo and reglas separately to handle missing 'nivel' column gracefully
+  const { data: catalogo } = await sb.from('catalogo_epp')
+    .select('epp_id, nombre, codigo, vida_util_dias, activo').order('nombre');
+
+  // Try with nivel, fallback without it
+  let reglas = [];
+  const { data: reglasCon, error: regErr } = await sb.from('obra_epp_reglas')
+    .select('epp_id, nivel').eq('obra_id', obraId);
+  if (regErr && regErr.message && regErr.message.includes('nivel')) {
+    // nivel column doesn't exist yet — fetch without it, treat all as OBLIGATORIO
+    const { data: reglasSin } = await sb.from('obra_epp_reglas')
+      .select('epp_id').eq('obra_id', obraId);
+    reglas = (reglasSin||[]).map(r => ({ epp_id: r.epp_id, nivel: 'OBLIGATORIO' }));
+  } else {
+    reglas = reglasCon || [];
+  }
 
   // Build reglas map
   const reglaMap = {};
