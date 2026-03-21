@@ -811,35 +811,60 @@
 
 <!-- ═══ MODAL: FORMULARIO TRABAJADOR ═══ -->
 <div class="modal-bg" id="modalTrabForm">
-  <div class="modal" style="max-width:480px">
+  <div class="modal" style="max-width:500px">
     <div class="modal-header">
       <div class="modal-title" id="modalTrabFormTitle">Trabajador</div>
       <button class="modal-close" onclick="closeModal('modalTrabForm')">✕</button>
     </div>
     <div class="modal-body">
-      <div id="trabFormError" class="form-error"></div>
-      <div class="form-group">
-        <label class="form-label">Nombre completo *</label>
-        <input class="form-input" id="trabNombre" placeholder="Juan Pérez">
+      <!-- Tabs: Nuevo / Existente -->
+      <div id="trabModeTabs" class="tabs" style="margin-bottom:16px">
+        <div class="tab active" onclick="setTrabMode('nuevo')">➕ Nuevo trabajador</div>
+        <div class="tab" onclick="setTrabMode('existente')">🔍 Agregar existente</div>
       </div>
-      <div class="form-group">
-        <label class="form-label">RUT *</label>
-        <input class="form-input" id="trabRut" placeholder="12.345.678-9">
+
+      <!-- MODO NUEVO -->
+      <div id="trabModeNuevo">
+        <div id="trabFormError" class="form-error"></div>
+        <div class="form-group">
+          <label class="form-label">Nombre completo *</label>
+          <input class="form-input" id="trabNombre" placeholder="Juan Pérez">
+        </div>
+        <div class="form-group">
+          <label class="form-label">RUT *</label>
+          <input class="form-input" id="trabRut" placeholder="12.345.678-9">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cargo</label>
+          <input class="form-input" id="trabCargo" placeholder="Operario, Capataz...">
+        </div>
+        <div class="form-group" id="trabCentroGroup">
+          <label class="form-label">Centro de costo inicial</label>
+          <select class="form-select" id="trabCentroInicial">
+            <option value="">Sin asignación</option>
+          </select>
+        </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Cargo</label>
-        <input class="form-input" id="trabCargo" placeholder="Operario, Capataz...">
-      </div>
-      <div class="form-group" id="trabCentroGroup">
-        <label class="form-label">Centro de costo inicial</label>
-        <select class="form-select" id="trabCentroInicial">
-          <option value="">Sin asignación</option>
-        </select>
+
+      <!-- MODO EXISTENTE -->
+      <div id="trabModeExistente" style="display:none">
+        <div id="trabExistenteError" class="form-error"></div>
+        <div class="form-group">
+          <label class="form-label">Buscar trabajador</label>
+          <input class="form-input" id="trabBuscar" placeholder="Nombre o RUT..." oninput="filtrarTrabExistentes()">
+        </div>
+        <div id="trabExistenteList" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;"></div>
+        <div class="form-group" style="margin-top:12px">
+          <label class="form-label">Asignar al centro</label>
+          <select class="form-select" id="trabExistenteCentro">
+            <option value="">Sin asignación</option>
+          </select>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modalTrabForm')">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveTrabajador()">Guardar</button>
+      <button class="btn btn-primary" id="trabFormBtn" onclick="saveTrabajador()">Guardar</button>
     </div>
   </div>
 </div>
@@ -2122,11 +2147,32 @@ async function saveTrabajador() {
   errEl.style.display = 'none';
   if (editId) {
     const { error } = await sb.from('trabajadores').update({ nombre, rut, cargo }).eq('trabajador_id', editId);
-    if (error) { errEl.textContent = error.message; errEl.style.display='block'; return; }
+    if (error) { errEl.textContent = 'Error al actualizar: ' + error.message; errEl.style.display='block'; return; }
   } else {
+    // Check for duplicate RUT first
+    const { data: existing } = await sb.from('trabajadores').select('trabajador_id, nombre').eq('rut', rut).maybeSingle();
+    if (existing) {
+      errEl.innerHTML = `El RUT <strong>${rut}</strong> ya está registrado como <strong>${existing.nombre}</strong>.<br>
+        <a href="#" style="color:var(--orange)" onclick="event.preventDefault();
+          closeModal('modalTrabForm');
+          openAsignarCentro('${existing.trabajador_id}','${existing.nombre}')">
+          ¿Asignar este trabajador a un centro?
+        </a>`;
+      errEl.style.display='block';
+      return;
+    }
     const { data: trab, error } = await sb.from('trabajadores').insert({ nombre, rut, cargo }).select().single();
-    if (error) { errEl.textContent = error.message; errEl.style.display='block'; return; }
-    if (obraId) await sb.from('trabajador_obras').insert({ trabajador_id: trab.trabajador_id, obra_id: obraId });
+    if (error) {
+      if (error.code === '23505') {
+        errEl.textContent = 'Este RUT ya existe en el sistema. Busca al trabajador en la lista y asígnalo al centro.';
+      } else {
+        errEl.textContent = 'Error al crear trabajador: ' + error.message;
+      }
+      errEl.style.display='block'; return;
+    }
+    if (obraId && trab) {
+      await sb.from('trabajador_obras').upsert({ trabajador_id: trab.trabajador_id, obra_id: obraId });
+    }
   }
   closeModal('modalTrabForm');
   await loadPageTrabajadores();
@@ -3442,6 +3488,80 @@ async function setRegla(obraId, eppId, nivel) {
   await loadReglas();
 }
 
+
+
+// ── MODAL TRABAJADOR — MODO NUEVO / EXISTENTE ────────────────────
+let allTrabExistentes = [];
+
+function setTrabMode(mode) {
+  document.querySelectorAll('#trabModeTabs .tab').forEach((t,i) =>
+    t.classList.toggle('active', (i===0 && mode==='nuevo') || (i===1 && mode==='existente'))
+  );
+  document.getElementById('trabModeNuevo').style.display     = mode==='nuevo'     ? '' : 'none';
+  document.getElementById('trabModeExistente').style.display = mode==='existente' ? '' : 'none';
+  document.getElementById('trabFormBtn').onclick = mode==='nuevo'
+    ? () => saveTrabajador()
+    : () => saveAsignarTrabExistente();
+  if (mode === 'existente' && !allTrabExistentes.length) loadTrabExistentes();
+}
+
+async function loadTrabExistentes() {
+  const { data } = await sb.from('trabajadores').select('trabajador_id, nombre, rut, cargo').order('nombre');
+  allTrabExistentes = data || [];
+  filtrarTrabExistentes();
+}
+
+function filtrarTrabExistentes() {
+  const q = (document.getElementById('trabBuscar')?.value || '').toLowerCase();
+  const lista = q
+    ? allTrabExistentes.filter(t => t.nombre.toLowerCase().includes(q) || (t.rut||'').includes(q))
+    : allTrabExistentes;
+  document.getElementById('trabExistenteList').innerHTML = lista.length
+    ? lista.map(t => `
+        <div onclick="selectTrabExistente('${t.trabajador_id}')"
+          id="trab-ex-${t.trabajador_id}"
+          style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;transition:background 0.1s"
+          onmouseenter="this.style.background='var(--bg)'" onmouseleave="this.style.background=''">
+          <div style="width:32px;height:32px;background:var(--navy);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:12px;flex-shrink:0">
+            ${t.nombre.split(' ').map(w=>w[0]).slice(0,2).join('')}
+          </div>
+          <div>
+            <div style="font-weight:600;font-size:13px;color:var(--navy)">${t.nombre}</div>
+            <div style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace">${t.rut||'Sin RUT'} · ${t.cargo||'Sin cargo'}</div>
+          </div>
+          <div id="check-${t.trabajador_id}" style="margin-left:auto;display:none;color:var(--orange);font-size:18px">✓</div>
+        </div>`)
+      .join('')
+    : '<div class="empty-state">Sin resultados</div>';
+}
+
+let selectedTrabId = null;
+function selectTrabExistente(trabId) {
+  // Deselect previous
+  if (selectedTrabId) {
+    const prev = document.getElementById(`trab-ex-${selectedTrabId}`);
+    if (prev) { prev.style.background=''; document.getElementById(`check-${selectedTrabId}`).style.display='none'; }
+  }
+  selectedTrabId = trabId;
+  const el = document.getElementById(`trab-ex-${trabId}`);
+  if (el) { el.style.background='var(--bg)'; document.getElementById(`check-${trabId}`).style.display=''; }
+}
+
+async function saveAsignarTrabExistente() {
+  const errEl  = document.getElementById('trabExistenteError');
+  const obraId = document.getElementById('trabExistenteCentro').value;
+  if (!selectedTrabId) { errEl.textContent='Selecciona un trabajador'; errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+  if (obraId) {
+    const { error } = await sb.from('trabajador_obras')
+      .upsert({ trabajador_id: selectedTrabId, obra_id: obraId });
+    if (error) { errEl.textContent = error.message; errEl.style.display='block'; return; }
+  }
+  selectedTrabId = null;
+  allTrabExistentes = [];
+  closeModal('modalTrabForm');
+  await loadPageTrabajadores();
+}
 
 </script>
 </body>
